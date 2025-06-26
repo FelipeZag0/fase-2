@@ -1,0 +1,23 @@
+{
+  "name": "subscription-management-system",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Backend system for managing internet provider subscriptions - Phase 1",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dev": "nodemon src/main.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "cors": "^2.8.5",
+    "axios": "^1.7.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,0 +1,317 @@
+{
+	"info": {
+		"_postman_id": "fe0e6937-4a83-421c-9c39-fc0ae07e2ca2",
+		"name": "Desenvolvimento_de_Sistemas_backend_2025-31",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "6621938"
+	},
+	"item": [
+		{
+			"name": "ServicoGerenciamentoPlanos",
+			"item": [
+				{
+					"name": "Lista Clientes",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/clients",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"clients"
+							]
+						},
+						"description": "### GET /gerenciaplanos/clients\n\nO endpoint recupera uma lista de clientes. A resposta retorna um código de status 200 e um tipo de conteúdo de application/json.\n\n#### Exemplo de Resposta\n\n```json\n[\n  {\n    \"id\": 1,\n    \"name\": \"Cliente 1\",\n    \"email\": \"cliente1@example.com\"\n  },\n  {\n    \"id\": 2,\n    \"name\": \"Cliente 2\",\n    \"email\": \"cliente2@example.com\"\n  }\n]\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Cria Cliente",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Novo Cliente\",\n    \"email\": \"novo.cliente@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/clients",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"clients"
+							]
+						},
+						"description": "### POST /gerenciaplanos/clients\n\nO endpoint cria um novo cliente. A solicitação deve incluir os seguintes parâmetros no body.\n\n#### Request Body\n\n- `name` (string): O nome do cliente.\n- `email` (string): O email do cliente.\n\n#### Exemplo de Resposta\n\n```json\n{\n    \"id\": 1,\n    \"name\": \"Novo Cliente\",\n    \"email\": \"novo.cliente@example.com\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Atualiza Cliente",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Cliente Atualizado\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/clients/1",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"clients",
+								"1"
+							]
+						},
+						"description": "### PUT /gerenciaplanos/clients/:id\n\nO endpoint atualiza um cliente existente. A solicitação deve incluir os seguintes parâmetros no body.\n\n#### Request Body\n\n- `name` (string, opcional): O novo nome do cliente.\n- `email` (string, opcional): O novo email do cliente.\n\n#### Exemplo de Resposta\n\n```json\n{\n    \"id\": 1,\n    \"name\": \"Cliente Atualizado\",\n    \"email\": \"novo.cliente@example.com\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Lista Planos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/plans",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"plans"
+							]
+						},
+						"description": "### GET /gerenciaplanos/plans\n\nO endpoint recupera uma lista de planos. A resposta retorna um código de status 200 e um tipo de conteúdo de application/json.\n\n#### Exemplo de Resposta\n\n```json\n[\n  {\n    \"id\": 1,\n    \"name\": \"Plano Básico\",\n    \"description\": \"Internet 100MB\",\n    \"price\": 99.90\n  },\n  {\n    \"id\": 2,\n    \"name\": \"Plano Premium\",\n    \"description\": \"Internet 500MB + TV\",\n    \"price\": 199.90\n  }\n]\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Cria Plano",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Plano Novo\",\n    \"description\": \"Descrição do plano novo\",\n    \"price\": 75.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/plans",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"plans"
+							]
+						},
+						"description": "### POST /gerenciaplanos/plans\n\nO endpoint cria um novo plano. A solicitação deve incluir os seguintes parâmetros no body.\n\n#### Request Body\n\n- `name` (string): O nome do plano.\n- `description` (string): A descrição do plano.\n- `price` (number): O preço do plano.\n\n#### Exemplo de Resposta\n\n```json\n{\n    \"id\": 1,\n    \"name\": \"Plano Novo\",\n    \"description\": \"Descrição do plano novo\",\n    \"price\": 75.00\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Atualiza Custo Plano",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"newPrice\": 85.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/plans/1/cost",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"plans",
+								"1",
+								"cost"
+							]
+						},
+						"description": "### PUT /gerenciaplanos/plans/:id/cost\n\nO endpoint atualiza o custo mensal de um plano existente. A solicitação deve incluir os seguintes parâmetros no body.\n\n#### Request Body\n\n- `newPrice` (number): O novo preço do plano.\n\n#### Exemplo de Resposta\n\n```json\n{\n    \"id\": 1,\n    \"name\": \"Plano Novo\",\n    \"description\": \"Descrição do plano novo\",\n    \"price\": 85.00\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Cria Assinatura",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"codCli\": 1,\n    \"codPlano\": 1,\n    \"startDate\": \"2024-06-26\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/subscriptions",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"subscriptions"
+							]
+						},
+						"description": "### POST /gerenciaplanos/subscriptions\n\nO endpoint cria uma nova assinatura de plano para um cliente. A solicitação deve incluir os seguintes parâmetros no body.\n\n#### Request Body\n\n- `codCli` (número): O código do cliente.\n- `codPlano` (número): O código do plano.\n- `startDate` (string): A data de início da assinatura no formato AAAA-MM-DD.\n\n#### Exemplo de Resposta\n\n```json\n{\n    \"id\": 1,\n    \"codCli\": 1,\n    \"codPlano\": 1,\n    \"startDate\": \"2024-06-26T03:00:00.000Z\",\n    \"cancellationDate\": null,\n    \"status\": \"active\",\n    \"reasonForCancellation\": null,\n    \"nextPaymentDate\": \"2024-07-26T03:00:00.000Z\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Lista Assinaturas por Cliente",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/subscriptions/client/1",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"subscriptions",
+								"client",
+								"1"
+							]
+						},
+						"description": "### GET /gerenciaplanos/subscriptions/client/:codCli\n\nO endpoint recupera uma lista de assinaturas para um cliente específico. A resposta retorna um código de status 200 e um tipo de conteúdo de application/json.\n\n#### Parâmetros de Path\n\n- `codCli` (número): O código do cliente.\n\n#### Exemplo de Resposta\n\n```json\n[\n  {\n    \"id\": 1,\n    \"codCli\": 1,\n    \"codPlano\": 1,\n    \"startDate\": \"2024-06-26T03:00:00.000Z\",\n    \"cancellationDate\": null,\n    \"status\": \"active\",\n    \"reasonForCancellation\": null,\n    \"nextPaymentDate\": \"2024-07-26T03:00:00.000Z\"\n  }\n]\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Lista Assinantes por Plano",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:3000/gerenciaplanos/subscriptions/plan/1",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"gerenciaplanos",
+								"subscriptions",
+								"plan",
+								"1"
+							]
+						},
+						"description": "### GET /gerenciaplanos/subscriptions/plan/:codPlano\n\nO endpoint recupera uma lista de assinantes para um plano específico. A resposta retorna um código de status 200 e um tipo de conteúdo de application/json.\n\n#### Parâmetros de Path\n\n- `codPlano` (número): O código do plano.\n\n#### Exemplo de Resposta\n\n```json\n[\n  {\n    \"id\": 1,\n    \"codCli\": 1,\n    \"codPlano\": 1,\n    \"startDate\": \"2024-06-26T03:00:00.000Z\",\n    \"cancellationDate\": null,\n    \"status\": \"active\",\n    \"reasonForCancellation\": null,\n    \"nextPaymentDate\": \"2024-07-26T03:00:00.000Z\"\n  }\n]\n```"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ServicoFaturamento",
+			"item": [
+				{
+					"name": "Registrar Pagamento",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"dia\": 25,\n    \"mes\": 6,\n    \"ano\": 2025,\n    \"codAss\": 1,\n    \"valorPago\": 50.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:3000/registrarpagamento",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"registrarpagamento"
+							]
+						},
+						"description": "### POST /registrarpagamento\n\nO endpoint é usado para registrar um pagamento. A solicitação deve incluir os seguintes parâmetros no body.\n\n#### Request Body\n\n- `dia` (número): O dia do pagamento.\n    \n- `mes` (número): O mês do pagamento.\n    \n- `ano` (número): O ano do pagamento.\n    \n- `codAss` (número): O código associado ao pagamento.\n    \n- `valorPago` (número): O valor pago."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ServicoPlanosAtivos",
+			"item": [
+				{
+					"name": "Assinaturas Validas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:3000/planosativos/1",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"planosativos",
+								"1"
+							]
+						},
+						"description": "### GET /planosativos/:codass\n\nO endpoint retorna se um plano questionado permanece ativo.\n\n#### Parâmetros de Path\n\n- `codass` (número): O código da assinatura.\n\n#### Exemplo de Resposta\n\n```json\ntrue\n```\n\n```json\nfalse\n```"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

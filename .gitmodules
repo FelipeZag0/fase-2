@@ -1,0 +1,3 @@
+[submodule "servico-gestao2"]
+	path = servico-gestao2
+	url = https://seu.git.repo/servico-gestao2.git
