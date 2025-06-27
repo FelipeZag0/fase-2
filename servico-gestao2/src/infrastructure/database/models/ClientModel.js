@@ -1,24 +1,31 @@
+// File: servico-gestao/src/infrastructure/database/models/ClientModel.js
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../../config/database.js'); 
+const sequelize = require('../../../config/database'); // Importa a instância do Sequelize
 
 const ClientModel = sequelize.define('Client', {
-  id: {
+  codCli: {
     type: DataTypes.INTEGER,
-    autoIncrement: true,
     primaryKey: true,
+    autoIncrement: true,
+    field: 'codCli' // Garante que o nome da coluna no banco é 'codCli'
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: true
   },
+  cpf: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  }
 }, {
-  tableName: 'clients',
-  timestamps: false,
+  tableName: 'clients', // Nome da tabela no banco de dados
+  timestamps: false // Se suas tabelas não tiverem 'createdAt' e 'updatedAt'
 });
 
 module.exports = ClientModel;

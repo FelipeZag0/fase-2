@@ -1,47 +1,43 @@
+// File: servico-gestao/src/domain/entities/Subscription.js
 class Subscription {
-  constructor(id, codCli, codPlano, startDate, endDate, status, lastPaymentDate, nextPaymentDate) {
-    if (!codCli) {
-      throw new Error('Subscription must be associated with a client.');
-    }
-    if (!codPlano) {
-      throw new Error('Subscription must be associated with a plan.');
-    }
-    if (!startDate || !(startDate instanceof Date)) {
-      throw new Error('Start date must be a valid Date object.');
-    }
-    if (status && !['active', 'inactive', 'canceled'].includes(status)) {
-        throw new Error('Invalid subscription status.');
-    }
-
-    this.id = id;
+  constructor(codAss, codCli, codPlano, startDate, endDate, status, cancellationDate, nextPaymentDate) {
+    this.codAss = codAss;
     this.codCli = codCli;
     this.codPlano = codPlano;
     this.startDate = startDate;
     this.endDate = endDate;
-    this.status = status || 'active'; // Default to active
-    this.lastPaymentDate = lastPaymentDate;
+    this.status = status; // Ex: 'active', 'inactive', 'cancelled'
+    this.cancellationDate = cancellationDate;
     this.nextPaymentDate = nextPaymentDate;
   }
 
-  markAsPaid(paymentDate) {
-    if (!paymentDate || !(paymentDate instanceof Date)) {
-      throw new Error('Payment date must be a valid Date object.');
-    }
-    this.lastPaymentDate = paymentDate;
-    // For now, let's assume a simple monthly payment cycle for nextPaymentDate calculation.
-    const nextMonth = new Date(paymentDate);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    this.nextPaymentDate = nextMonth;
-    this.status = 'active'; // Re-activate if paid
-  }
-
-  cancel() {
-    this.status = 'canceled';
-    this.endDate = new Date();
-  }
+  // Métodos de domínio para a entidade Subscription podem ser adicionados aqui
+  // Ex: isActive(), cancel(), etc.
 
   isActive() {
-    return this.status === 'active' && (!this.endDate || this.endDate > new Date());
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    return this.status === 'active' &&
+           (!this.endDate || new Date(this.endDate) >= now);
+  }
+
+  cancel(cancellationDate = new Date()) {
+    this.status = 'cancelled';
+    this.cancellationDate = cancellationDate;
+  }
+
+  toObject() {
+    return {
+      codAss: this.codAss,
+      codCli: this.codCli,
+      codPlano: this.codPlano,
+      startDate: this.startDate ? this.startDate.toISOString().split('T')[0] : null,
+      endDate: this.endDate ? this.endDate.toISOString().split('T')[0] : null,
+      status: this.status,
+      cancellationDate: this.cancellationDate ? this.cancellationDate.toISOString().split('T')[0] : null,
+      nextPaymentDate: this.nextPaymentDate ? this.nextPaymentDate.toISOString().split('T')[0] : null,
+    };
   }
 }
 

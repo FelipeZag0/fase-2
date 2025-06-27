@@ -1,15 +1,16 @@
 // File: servico-gestao/src/main.js
 const Server = require('./server');
-const AppRouter = require('./infra/web/index'); // Corrigido para index.js
-const Database = require('./infra/database/Database');
+const AppRouter = require('./infrastructure/web/routes/AppRouter');
+const sequelize = require('./config/database'); // Importa a instância do Sequelize
 
 // Repositories
-const ClientRepository = require('./infra/repositories/ClientRepository');
-const PlanRepository = require('./infra/repositories/PlanRepository');
-const SubscriptionRepository = require('./infra/repositories/SubscriptionRepository');
+const ClientRepositoryPg = require('./infrastructure/database/repositories/ClientRepositoryPg');
+// TODO: Você precisará criar e importar PlanRepositoryPg e SubscriptionRepositoryPg para Sequelize
+const PlanRepository = require('./infrastructure/database/repositories/PlanRepositoryPg'); 
+const SubscriptionRepository = require('./infrastructure/database/repositories/SubscriptionRepositoryPg'); 
 
 // Domain Services
-const SubscriptionDomainService = require('./domain/services/SubscriptionDomainService');
+const SubscriptionDomainService = require('./infrastructure/services/SubscriptionDomainService');
 
 // Use Cases
 const CreateSubscriptionUseCase = require('./application/use-cases/CreateSubscriptionUseCase');
@@ -19,23 +20,39 @@ const UpdatePlanCostUseCase = require('./application/use-cases/UpdatePlanCostUse
 const ListClientSubscriptionsUseCase = require('./application/use-cases/ListClientSubscriptionsUseCase');
 const ListPlanSubscribersUseCase = require('./application/use-cases/ListPlanSubscribersUseCase');
 
+// NOVOS Use Cases
+const CreateClientUseCase = require('./application/use-cases/CreateClientUseCase'); // NOVO
+const UpdateClientUseCase = require('./application/use-cases/UpdateClientUseCase'); // NOVO
+const CreatePlanUseCase = require('./application/use-cases/CreatePlanUseCase');     // NOVO
 
 // Controllers
-const ClientController = require('./infra/web/controllers/ClientController');
-const PlanController = require('./infra/web/controllers/PlanController');
-const SubscriptionController = require('./infra/web/controllers/SubscriptionController');
+const ClientController = require('./infrastructure/web/controllers/ClientController');
+const PlanController = require('./infrastructure/web/controllers/PlanController');
+const SubscriptionController = require('./infrastructure/web/controllers/SubscriptionController');
 
 // New for Phase 2: Message Broker and Axios for HTTP requests to microservices
 const MessageBrokerService = require('./application/services/MessageBrokerService');
-const axios = require('axios'); // For making HTTP requests to other microservices
+const axios = require('axios');
 
 async function main() {
-  const db = await Database.initialize();
+  // Sincroniza os modelos do Sequelize com o banco de dados
+  // Isso criará as tabelas se não existirem, com base nos seus modelos Sequelize (ex: ClientModel)
+  try {
+    await sequelize.sync({ force: false }); // 'force: true' apaga e recria tabelas (CUIDADO!)
+    console.log('Database and tables synchronized with Sequelize.');
+  } catch (error) {
+    console.error('Unable to synchronize database with Sequelize:', error);
+    process.exit(1); // Sai do processo se a sincronização falhar
+  }
 
-  // Initialize Repositories
-  const clientRepository = new ClientRepository(db);
-  const planRepository = new PlanRepository(db);
-  const subscriptionRepository = new SubscriptionRepository(db);
+  // Inicialize Repositórios (agora baseados em Sequelize)
+  const clientRepository = new ClientRepositoryPg();
+  // TODO: Instancie seus repositórios Plan e Subscription baseados em Sequelize aqui
+  // Por enquanto, estou mantendo os antigos PlanRepository e SubscriptionRepository
+  // Se eles não forem baseados em Sequelize, você precisará ajustar a lógica interna deles
+  const planRepository = new PlanRepository();
+  const subscriptionRepository = new SubscriptionRepository();
+
 
   // Initialize Domain Services
   const subscriptionDomainService = new SubscriptionDomainService();
@@ -62,7 +79,6 @@ async function main() {
     listPlanSubscribersUseCase
   );
 
-
   // Setup main router for ServicoGestao
   const appRouter = new AppRouter(
     clientController,
@@ -75,16 +91,11 @@ async function main() {
   // Route for ServicoFaturamento - Register Payment
   appRouter.getRouter().post('/registrarpagamento', async (req, res) => {
     try {
-      const { dia, mes, ano, codAss, valorPago } = req.body;
-      // Call ServicoFaturamento
-      const response = await axios.post('http://servico-faturamento:3001/payments', {
-        dia, mes, ano, codAss, valorPago
-      });
+      // O nome do host 'servico-faturamento' será resolvido pelo Docker Compose
+      const response = await axios.post('http://servico-faturamento:3001/payments', req.body);
 
-      // Publish payment event to message broker
-      MessageBrokerService.publish('payment_event', {
-        codAss, dia, mes, ano, valorPago
-      });
+      // Publicar evento de pagamento para o message broker (em memória)
+      MessageBrokerService.publish('payment_event', req.body);
 
       res.status(response.status).json(response.data);
     } catch (error) {
@@ -100,7 +111,7 @@ async function main() {
   appRouter.getRouter().get('/planosativos/:codass', async (req, res) => {
     try {
       const { codass } = req.params;
-      // Call ServicoPlanosAtivos
+      // O nome do host 'servico-planos-ativos' será resolvido pelo Docker Compose
       const response = await axios.get(`http://servico-planos-ativos:3002/active-plans/${codass}`);
       res.status(response.status).json(response.data);
     } catch (error) {
@@ -111,7 +122,6 @@ async function main() {
       res.status(500).json({ error: 'Failed to check active plan.' });
     }
   });
-
 
   const server = new Server(appRouter);
   server.start();

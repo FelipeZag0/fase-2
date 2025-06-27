@@ -4,17 +4,18 @@ const ClientModel = require('./ClientModel');
 const PlanModel = require('./PlanModel');
 
 const SubscriptionModel = sequelize.define('Subscription', {
-  id: {
+  codAss: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
+    field: 'codAss'
   },
   codCli: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: ClientModel,
-      key: 'id',
+      key: 'codCli',
     },
   },
   codPlano: {
@@ -22,7 +23,7 @@ const SubscriptionModel = sequelize.define('Subscription', {
     allowNull: false,
     references: {
       model: PlanModel,
-      key: 'id',
+      key: 'codPlano',
     },
   },
   startDate: {
@@ -51,7 +52,13 @@ const SubscriptionModel = sequelize.define('Subscription', {
   timestamps: false,
 });
 
-SubscriptionModel.belongsTo(ClientModel, { foreignKey: 'codCli', as: 'client' });
-SubscriptionModel.belongsTo(PlanModel, { foreignKey: 'codPlano', as: 'plan' });
+SubscriptionModel.belongsTo(ClientModel, { foreignKey: 'codCli' });
+SubscriptionModel.belongsTo(PlanModel, { foreignKey: 'codPlano' });
+
+// Um cliente pode ter muitas assinaturas
+ClientModel.hasMany(SubscriptionModel, { foreignKey: 'codCli' });
+
+// Um plano pode ter muitas assinaturas
+PlanModel.hasMany(SubscriptionModel, { foreignKey: 'codPlano' });
 
 module.exports = SubscriptionModel;

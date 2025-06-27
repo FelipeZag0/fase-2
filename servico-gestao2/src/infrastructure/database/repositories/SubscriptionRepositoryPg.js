@@ -1,5 +1,5 @@
 // File: servico-gestao/src/infra/repositories/SubscriptionRepository.js
-const Subscription = require('../../domain/entities/Subscription');
+const Subscription = require('../../../domain/entities/Subscription');
 
 class SubscriptionRepository {
   constructor(db) {

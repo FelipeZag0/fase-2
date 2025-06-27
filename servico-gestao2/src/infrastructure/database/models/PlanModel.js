@@ -1,11 +1,12 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../../config/database.js'); 
+const sequelize = require('../../../config/database');
 
 const PlanModel = sequelize.define('Plan', {
-  id: {
+  codPlano: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
+    field: 'codPlano'
   },
   name: {
     type: DataTypes.STRING,
@@ -20,6 +21,10 @@ const PlanModel = sequelize.define('Plan', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
+  maxClients: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  }
 }, {
   tableName: 'plans',
   timestamps: false,

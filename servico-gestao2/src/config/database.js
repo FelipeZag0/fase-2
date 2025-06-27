@@ -1,5 +1,6 @@
+// File: servico-gestao/src/config/database.js
+require('dotenv').config(); // Carrega variáveis de ambiente do .env
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -7,14 +8,22 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: process.env.DB_DIALECT,
-    logging: false, // Set to true to see SQL queries in console
+    dialect: 'postgres', // Ou 'mysql', 'mssql', 'sqlite' etc.
+    logging: false, // Desabilita logs do Sequelize, defina como true para depuração
   }
 );
 
-module.exports = {
-  sequelize: sequelize, // Exporta a instância completa do Sequelize (se precisar dela em outro lugar)
-  authenticate: sequelize.authenticate.bind(sequelize), // Exporta o método authenticate
-  sync: sequelize.sync.bind(sequelize), // Exporta o método sync
-};
+// Testa a conexão (opcional, mas recomendado para verificar ao iniciar)
+async function testConnection() {
+  try {
+    await sequelize.authenticate();
+    console.log('Connection to database has been established successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+    process.exit(1); // Sai do processo se a conexão falhar
+  }
+}
+
+testConnection();
+
+module.exports = sequelize;
