@@ -1,4 +1,3 @@
-// File: servico-gestao/src/infrastructure/web/controllers/SubscriptionController.js
 class SubscriptionController {
   constructor(createSubscriptionUseCase, listClientSubscriptionsUseCase, listPlanSubscribersUseCase) {
     this.createSubscriptionUseCase = createSubscriptionUseCase;
@@ -9,7 +8,6 @@ class SubscriptionController {
   async createSubscription(req, res) {
     try {
       const { codCli, codPlano, startDate } = req.body;
-      // Validação básica dos inputs
       if (!codCli || !codPlano || !startDate) {
         return res.status(400).json({ error: 'Client ID, Plan ID, and Start Date are required.' });
       }

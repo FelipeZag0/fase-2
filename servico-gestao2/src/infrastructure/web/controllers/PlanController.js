@@ -1,53 +1,54 @@
-// File: servico-gestao/src/infrastructure/web/controllers/PlanController.js
 class PlanController {
-  constructor(listPlansUseCase, updatePlanCostUseCase, createPlanUseCase) {
+  // CORREÇÃO: Ordem correta dos parâmetros
+  constructor(listPlansUseCase, createPlanUseCase, updatePlanCostUseCase) {
     this.listPlansUseCase = listPlansUseCase;
+    this.createPlanUseCase = createPlanUseCase;
     this.updatePlanCostUseCase = updatePlanCostUseCase;
-    this.createPlanUseCase = createPlanUseCase; // Novo
   }
 
+  // CORREÇÃO: Método renomeado para listPlans
   async listPlans(req, res) {
     try {
       const plans = await this.listPlansUseCase.execute();
       res.status(200).json(plans);
     } catch (error) {
-      console.error('Error listing plans:', error);
-      res.status(500).json({ error: 'Failed to retrieve plans.' });
+      console.error('Error listing plans:', error.message);
+      res.status(500).json({ error: 'Failed to list plans.' });
     }
   }
 
-  // Novo método para criar planos
+  // CORREÇÃO: Método renomeado para createPlan
   async createPlan(req, res) {
+    console.log('Recebido para criar plano:', req.body);
     try {
-      const { name, description, cost, maxClients } = req.body;
-      if (!name || !cost) {
-        return res.status(400).json({ error: 'Name and Cost are required for a plan.' });
+      const { name, description, price } = req.body;
+      if (!name || !description || typeof price !== 'number') {
+        return res.status(400).json({ error: 'Bad Request: name, description, and price (number) are required.' });
       }
-      const newPlan = await this.createPlanUseCase.execute(name, description, cost, maxClients);
+      const newPlan = await this.createPlanUseCase.execute({ name, description, price });
       res.status(201).json(newPlan);
     } catch (error) {
-      console.error('Error creating plan:', error);
-      if (error.message.includes('unique constraint')) {
-        return res.status(409).json({ error: 'Plan with this name already exists.' });
-      }
+      console.error('Error creating plan:', error.message);
       res.status(500).json({ error: 'Failed to create plan.' });
     }
   }
 
+  // CORREÇÃO: Método renomeado para updatePlanCost
   async updatePlanCost(req, res) {
+    const { id } = req.params;
+    const { newPrice } = req.body;
+    console.log(`Recebido para atualizar custo do plano ${id}:`, req.body);
     try {
-      const { id } = req.params;
-      const { newCost } = req.body;
-      if (typeof newCost !== 'number' || newCost < 0) {
-        return res.status(400).json({ error: 'New cost must be a non-negative number.' });
+      if (typeof newPrice !== 'number') {
+        return res.status(400).json({ error: 'Bad Request: newPrice (number) is required.' });
       }
-      const updatedPlan = await this.updatePlanCostUseCase.execute(Number(id), newCost);
+      const updatedPlan = await this.updatePlanCostUseCase.execute(id, newPrice);
+      if (!updatedPlan) {
+        return res.status(404).json({ error: 'Plan not found.' });
+      }
       res.status(200).json(updatedPlan);
     } catch (error) {
-      console.error('Error updating plan cost:', error);
-      if (error.message.includes('not found')) {
-        return res.status(404).json({ error: error.message });
-      }
+      console.error('Error updating plan cost:', error.message);
       res.status(500).json({ error: 'Failed to update plan cost.' });
     }
   }

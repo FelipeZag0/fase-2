@@ -1,4 +1,3 @@
-// File: servico-gestao/src/infra/web/AppRouter.js
 const express = require('express');
 
 class AppRouter {
@@ -17,6 +16,7 @@ class AppRouter {
     this.router.put('/gerenciaplanos/clients/:id', this.clientController.updateClient.bind(this.clientController));
 
     // Plan routes
+    // CORREÇÃO: Usando métodos com nomes corretos
     this.router.get('/gerenciaplanos/plans', this.planController.listPlans.bind(this.planController));
     this.router.post('/gerenciaplanos/plans', this.planController.createPlan.bind(this.planController));
     this.router.put('/gerenciaplanos/plans/:id/cost', this.planController.updatePlanCost.bind(this.planController));
