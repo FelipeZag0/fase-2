@@ -1,100 +1,113 @@
-# Subscription Management System - Phase 2
+# Sistema de Gestão de Assinaturas - Fase 2
 
-This project implements a subscription management system for internet providers, adhering to a clean architecture and incorporating microservices for billing and active plan management.
+Este projeto implementa um sistema de gestão de assinaturas para provedores de internet, seguindo os princípios de uma arquitetura limpa e incorporando microsserviços para gestão de faturamento e planos ativos.
 
-## Project Structure
+-----
 
-The project is composed of three main services:
+## Estrutura do Projeto
 
-- **ServicoGestao (Main Service):** Handles client, plan, and subscription management.
-- **ServicoFaturamento (Billing Service):** Manages payments and charges.
-- **ServicoPlanosAtivos (Active Plans Service):** Maintains a cache of active subscriptions and responds to queries about subscription validity.
+O projeto é composto por três serviços principais:
 
-## Technologies Used
+  - **Serviço de Gestão (Serviço Principal):** Responsável pela gestão de clientes, planos e assinaturas.
+  - **Serviço de Faturamento (Microsserviço):** Gerencia pagamentos e cobranças.
+  - **Serviço de Planos Ativos (Microsserviço):** Mantém um cache de assinaturas ativas e responde a consultas sobre a validade das assinaturas.
 
-- Node.js
-- Express.js
-- SQLite (for ServicoGestao database)
-- Message Broker (in-memory for demonstration, can be extended to RabbitMQ/Kafka)
-- Docker & Docker Compose
+-----
 
-## Setup and Running
+## Tecnologias Utilizadas
 
-### Prerequisites
+  - Node.js
+  - Express.js
+  - SQLite (para o banco de dados do Serviço de Gestão)
+  - Message Broker (em memória para demonstração, com possibilidade de extensão para RabbitMQ/Kafka)
+  - Docker e Docker Compose
 
-- Docker Desktop installed and running.
-- Node.js and npm (optional, if you prefer to run services individually without Docker Compose).
+-----
 
-### Steps to Run with Docker Compose
+## Configuração e Execução
 
-1.  **Clone the repository (if applicable) or create the project structure as described.**
-2.  **Navigate to the root directory of the project (where `docker-compose.yml` is located).**
-3.  **Build and start the services:**
+### Pré-requisitos
+
+  - Docker Desktop instalado e em execução.
+  - Node.js e npm (opcional, caso prefira executar os serviços individualmente sem Docker Compose).
+
+### Passos para Executar com Docker Compose
+
+1.  **Clone o repositório (se aplicável) ou crie a estrutura do projeto conforme descrito.**
+
+2.  **Navegue até o diretório raiz do projeto (onde o `docker-compose.yml` está localizado).**
+
+3.  **Construa e inicie os serviços:**
 
     ```bash
     docker-compose up --build
     ```
 
-    This command will:
-    - Build the Docker images for each service based on their `Dockerfile` (which will simply copy the code and install dependencies).
-    - Start all three services in detached mode.
+    Este comando irá:
 
-4.  **Verify services are running:**
+      - Construir as imagens Docker para cada serviço com base em seus `Dockerfile` (que simplesmente copiarão o código e instalarão as dependências).
+      - Iniciar todos os três serviços em modo *detached*.
 
-    You should see output indicating that each service is listening on its respective port (3000, 3001, 3002).
+4.  **Verifique se os serviços estão em execução:**
 
-### Running Services Individually (without Docker Compose)
+    Você deverá ver uma saída indicando que cada serviço está "escutando" em sua respectiva porta (3000, 3001, 3002).
 
-1.  **Navigate to each service's directory (`servico-gestao`, `microservices/servico-faturamento`, `microservices/servico-planos-ativos`).**
-2.  **Install dependencies:**
+### Executando Serviços Individualmente (sem Docker Compose)
+
+1.  **Navegue para o diretório de cada serviço (`servico-gestao`, `microservices/servico-faturamento`, `microservices/servico-planos-ativos`).**
+
+2.  **Instale as dependências:**
 
     ```bash
     npm install
     ```
 
-3.  **Start each service:**
+3.  **Inicie cada serviço:**
 
     ```bash
     npm run dev
     ```
-    (This uses `nodemon` for automatic restarts on code changes. For production, `npm start` would be used.)
 
-## API Endpoints (via ServicoGestao - Port 3000)
+    (Este comando utiliza `nodemon` para reinícios automáticos em caso de alterações no código. Para produção, `npm start` seria usado.)
 
-The main `ServicoGestao` acts as an API Gateway for certain functionalities. The `postman-collection.json` provides a comprehensive set of requests.
+-----
 
-### ServicoGerenciamentoPlanos (ServicoGestao)
+## Endpoints da API (via Serviço de Gestão - Porta 3000)
 
--   **GET /gerenciaplanos/clients**: List all clients.
--   **POST /gerenciaplanos/clients**: Create a new client.
+O `ServicoGestao` principal atua como um *API Gateway* para certas funcionalidades. A coleção do Postman (`postman-collection.json`) oferece um conjunto abrangente de requisições.
+
+### Serviço de Gerenciamento de Planos (Serviço de Gestão)
+
+  - **GET /gerenciaplanos/clients**: Lista todos os clientes.
+  - **POST /gerenciaplanos/clients**: Cria um novo cliente.
     ```json
     {
-        "name": "John Doe",
-        "email": "john.doe@example.com"
+        "name": "João da Silva",
+        "email": "joao.silva@example.com"
     }
     ```
--   **PUT /gerenciaplanos/clients/:id**: Update a client.
+  - **PUT /gerenciaplanos/clients/:id**: Atualiza um cliente.
     ```json
     {
-        "name": "John D. Smith"
+        "name": "João da Silva Sauro"
     }
     ```
--   **GET /gerenciaplanos/plans**: List all plans.
--   **POST /gerenciaplanos/plans**: Create a new plan.
+  - **GET /gerenciaplanos/plans**: Lista todos os planos.
+  - **POST /gerenciaplanos/plans**: Cria um novo plano.
     ```json
     {
-        "name": "Basic Internet",
+        "name": "Internet Básica",
         "description": "100 Mbps",
         "price": 50.00
     }
     ```
--   **PUT /gerenciaplanos/plans/:id/cost**: Update the cost of a plan.
+  - **PUT /gerenciaplanos/plans/:id/cost**: Atualiza o custo de um plano.
     ```json
     {
         "newPrice": 55.00
     }
     ```
--   **POST /gerenciaplanos/subscriptions**: Create a new subscription.
+  - **POST /gerenciaplanos/subscriptions**: Cria uma nova assinatura.
     ```json
     {
         "codCli": 1,
@@ -102,12 +115,12 @@ The main `ServicoGestao` acts as an API Gateway for certain functionalities. The
         "startDate": "2023-01-01"
     }
     ```
--   **GET /gerenciaplanos/subscriptions/client/:codCli**: List subscriptions for a specific client.
--   **GET /gerenciaplanos/subscriptions/plan/:codPlano**: List subscribers for a specific plan.
+  - **GET /gerenciaplanos/subscriptions/client/:codCli**: Lista assinaturas para um cliente específico.
+  - **GET /gerenciaplanos/subscriptions/plan/:codPlano**: Lista assinantes para um plano específico.
 
-### ServicoFaturamento (Accessed via ServicoGestao - Port 3000)
+### Serviço de Faturamento (Acessado via Serviço de Gestão - Porta 3000)
 
--   **POST /registrarpagamento**: Register a payment for a subscription. This request is handled by `ServicoGestao` which then forwards it to `ServicoFaturamento` (http://servico-faturamento:3001/payments).
+  - **POST /registrarpagamento**: Registra um pagamento para uma assinatura. Esta requisição é tratada pelo `ServicoGestao`, que então a encaminha para o `ServicoFaturamento` (http://servico-faturamento:3001/payments).
     ```json
     {
         "dia": 25,
@@ -118,40 +131,51 @@ The main `ServicoGestao` acts as an API Gateway for certain functionalities. The
     }
     ```
 
-### ServicoPlanosAtivos (Accessed via ServicoGestao - Port 3000)
+### Serviço de Planos Ativos (Acessado via Serviço de Gestão - Porta 3000)
 
--   **GET /planosativos/:codass**: Check if a specific subscription is active. This request is handled by `ServicoGestao` which then forwards it to `ServicoPlanosAtivos` (http://servico-planos-ativos:3002/active-plans/:codass).
+  - **GET /planosativos/:codass**: Verifica se uma assinatura específica está ativa. Esta requisição é tratada pelo `ServicoGestao`, que então a encaminha para o `ServicoPlanosAtivos` (http://servico-planos-ativos:3002/active-plans/:codass).
 
-## Postman Collection
+-----
 
-A Postman collection named `postman-collection.json` is provided in the root directory. You can import this file into Postman to easily test all the endpoints.
+## Coleção Postman
 
-## Conclusion and Development Insights
+Uma coleção Postman chamada `postman-collection.json` é fornecida no diretório raiz. Você pode importar este arquivo para o Postman para testar facilmente todos os *endpoints*.
 
-### Challenges Encountered and Solutions
+-----
 
-1.  **Inter-service Communication:**
-    * **Challenge:** Deciding on synchronous vs. asynchronous communication for different scenarios.
-    * **Solution:** For `ServicoFaturamento` and `ServicoPlanosAtivos` direct queries, synchronous HTTP requests were chosen, with `ServicoGestao` acting as a proxy/gateway. For payment events (which need to update the cache in `ServicoPlanosAtivos` without blocking the main flow), an asynchronous message broker pattern was implemented. Although a full-fledged message broker like RabbitMQ was not set up due to complexity within the project scope, an in-memory `MessageBrokerService` was created to simulate this behavior, demonstrating the event-driven architecture.
+## Conclusão e Observações de Desenvolvimento
 
-2.  **Maintaining Active Plan Cache:**
-    * **Challenge:** The `ServicoPlanosAtivos` needs to maintain a fast, up-to-date cache of active subscriptions.
-    * **Solution:** Implemented a `SubscriptionCacheRepository` within `ServicoPlanosAtivos` that stores active subscriptions. This cache is updated when new subscriptions are created (via direct HTTP call from `ServicoGestao`) and, critically, when payments are registered (via the message broker). The `CheckSubscriptionUseCase` in `ServicoPlanosAtivos` directly queries this cache.
+### Desafios Encontrados e Soluções
 
-3.  **Clean Architecture Adaptation for Microservices:**
-    * **Challenge:** Applying Clean Architecture principles across multiple services, ensuring clear separation of concerns within each, and defining clear interfaces between them.
-    * **Solution:** Each microservice (`ServicoFaturamento`, `ServicoPlanosAtivos`) was designed with its own Clean Architecture structure (Entities, Use Cases, Repositories, Controllers). The communication points (`MessageBrokerService`, HTTP requests) were treated as external interfaces, allowing each service to remain largely independent in its internal logic.
+1.  **Comunicação Entre Serviços:**
 
-4.  **Database Management (SQLite for `ServicoGestao`):**
-    * **Challenge:** Ensuring the SQLite database for `ServicoGestao` is properly initialized and persisted (for local development).
-    * **Solution:** The `Database.js` in `ServicoGestao` handles the creation of the `database.sqlite` file and necessary tables on startup if they don't exist. For Docker, a volume mount ensures the database file persists across container restarts during development.
+      * **Desafio:** Decidir entre comunicação síncrona e assíncrona para diferentes cenários.
+      * **Solução:** Para consultas diretas ao `ServicoFaturamento` e `ServicoPlanosAtivos`, foram escolhidas requisições HTTP síncronas, com o `ServicoGestao` atuando como proxy/gateway. Para eventos de pagamento (que precisam atualizar o cache no `ServicoPlanosAtivos` sem bloquear o fluxo principal), um padrão de *message broker* assíncrono foi implementado. Embora um *message broker* completo como RabbitMQ não tenha sido configurado devido à complexidade dentro do escopo do projeto, um `MessageBrokerService` em memória foi criado para simular esse comportamento, demonstrando a arquitetura orientada a eventos.
 
-### References that Aided Development
+2.  **Manutenção do Cache de Planos Ativos:**
 
--   **Clean Architecture by Robert C. Martin (Uncle Bob):** The foundational principles for structuring the application layers.
--   **Node.js & Express.js Documentation:** For building the RESTful APIs.
--   **SQLite Documentation:** For basic database operations.
--   **Pattern: API Gateway:** Understanding how a central service can route requests to multiple microservices.
--   **Pattern: Publisher/Subscriber (Message Broker):** For implementing asynchronous communication between services.
+      * **Desafio:** O `ServicoPlanosAtivos` precisa manter um cache rápido e atualizado de assinaturas ativas.
+      * **Solução:** Implementado um `SubscriptionCacheRepository` dentro do `ServicoPlanosAtivos` que armazena assinaturas ativas. Este cache é atualizado quando novas assinaturas são criadas (via chamada HTTP direta do `ServicoGestao`) e, crucialmente, quando pagamentos são registrados (via *message broker*). O `CheckSubscriptionUseCase` no `ServicoPlanosAtivos` consulta diretamente este cache.
 
-This phase successfully integrates the core `ServicoGestao` with new microservices, demonstrating inter-service communication patterns and extending the system's capabilities as per the project requirements.
+3.  **Adaptação da Arquitetura Limpa para Microsserviços:**
+
+      * **Desafio:** Aplicar os princípios da Arquitetura Limpa em múltiplos serviços, garantindo clara separação de preocupações dentro de cada um e definindo interfaces claras entre eles.
+      * **Solução:** Cada microsserviço (`ServicoFaturamento`, `ServicoPlanosAtivos`) foi projetado com sua própria estrutura de Arquitetura Limpa (Entidades, Casos de Uso, Repositórios, Controladores). Os pontos de comunicação (`MessageBrokerService`, requisições HTTP) foram tratados como interfaces externas, permitindo que cada serviço permanecesse em grande parte independente em sua lógica interna.
+
+4.  **Gerenciamento de Banco de Dados (SQLite para `ServicoGestao`):**
+
+      * **Desafio:** Garantir que o banco de dados SQLite para o `ServicoGestao` seja devidamente inicializado e persistido (para desenvolvimento local).
+      * **Solução:** O `Database.js` no `ServicoGestao` lida com a criação do arquivo `database.sqlite` e das tabelas necessárias na inicialização, caso não existam. Para Docker, uma montagem de volume garante que o arquivo do banco de dados persista entre as reinicializações do contêiner durante o desenvolvimento.
+
+### Referências que Auxiliaram no Desenvolvimento
+
+  - **Clean Architecture por Robert C. Martin (Uncle Bob):** Os princípios fundamentais para estruturar as camadas da aplicação.
+  - **Documentação Node.js & Express.js:** Para a construção das APIs RESTful.
+  - **Documentação SQLite:** Para operações básicas de banco de dados.
+  - **Padrão: API Gateway:** Entendimento de como um serviço central pode rotear requisições para múltiplos microsserviços.
+  - **Padrão: Publicador/Assinante (Message Broker):** Para implementar comunicação assíncrona entre serviços.
+
+-----
+
+Esta fase integrou com sucesso o `ServicoGestao` principal com novos microsserviços, demonstrando padrões de comunicação entre serviços e estendendo as capacidades do sistema conforme os requisitos do projeto.
+
