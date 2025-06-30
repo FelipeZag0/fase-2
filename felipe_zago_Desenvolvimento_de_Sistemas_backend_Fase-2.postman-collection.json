@@ -1,8 +1,9 @@
 {
   "info": {
     "_postman_id": "fe0e6937-4a83-421c-9c39-fc0ae07e2ca2",
-    "name": "Sistema_Operadora_Internet",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "Desenvolvimento_de_Sistemas_backend_2025-31",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "6621938"
   },
   "item": [
     {
@@ -14,9 +15,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/gestao/clientes",
+              "raw": "{{base_url}}/gerenciaplanos/clients",
               "host": ["{{base_url}}"],
-              "path": ["gestao", "clientes"]
+              "path": ["gerenciaplanos", "clients"]
             },
             "description": "Lista todos os clientes cadastrados"
           },
@@ -28,11 +29,103 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/gestao/planos",
+              "raw": "{{base_url}}/gerenciaplanos/plans",
               "host": ["{{base_url}}"],
-              "path": ["gestao", "planos"]
+              "path": ["gerenciaplanos", "plans"]
             },
             "description": "Lista todos os planos cadastrados"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Cliente",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nome do Cliente\",\n  \"email\": \"cliente@email.com\",\n  \"cpf\": \"12345678900\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gerenciaplanos/clients",
+              "host": ["{{base_url}}"],
+              "path": ["gerenciaplanos", "clients"]
+            },
+            "description": "Cadastra um novo cliente"
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Cliente",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Novo Nome\",\n  \"email\": \"novo@email.com\",\n  \"cpf\": \"12345678900\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gerenciaplanos/clients/1",
+              "host": ["{{base_url}}"],
+              "path": ["gerenciaplanos", "clients", "1"]
+            },
+            "description": "Atualiza dados de um cliente existente"
+          },
+          "response": []
+        },
+        {
+          "name": "Criar Plano",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plano Premium\",\n  \"description\": \"Internet 500MB + TV HD\",\n  \"monthlyCost\": 199.90\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gerenciaplanos/plans",
+              "host": ["{{base_url}}"],
+              "path": ["gerenciaplanos", "plans"]
+            },
+            "description": "Cadastra um novo plano"
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Custo do Plano",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPrice\": 149.90\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gerenciaplanos/plans/1/cost",
+              "host": ["{{base_url}}"],
+              "path": ["gerenciaplanos", "plans", "1", "cost"]
+            },
+            "description": "Atualiza o custo mensal de um plano"
           },
           "response": []
         },
@@ -40,15 +133,10 @@
           "name": "Criar Assinatura",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"codCli\": 1,\n    \"codPlano\": 1\n}",
+              "raw": "{\n  \"codCli\": 1,\n  \"codPlano\": 1,\n  \"startDate\": \"2025-01-01\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -56,81 +144,39 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/gestao/assinaturas",
+              "raw": "{{base_url}}/gerenciaplanos/subscriptions",
               "host": ["{{base_url}}"],
-              "path": ["gestao", "assinaturas"]
+              "path": ["gerenciaplanos", "subscriptions"]
             },
             "description": "Cria uma nova assinatura para um cliente"
           },
           "response": []
         },
         {
-          "name": "Atualizar Custo do Plano",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"custoMensal\": 99.90\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/gestao/planos/1",
-              "host": ["{{base_url}}"],
-              "path": ["gestao", "planos", "1"]
-            },
-            "description": "Atualiza o custo mensal de um plano"
-          },
-          "response": []
-        },
-        {
-          "name": "Listar Assinaturas por Tipo",
+          "name": "Listar Assinaturas por Cliente",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/gestao/assinaturas/ATIVOS",
+              "raw": "{{base_url}}/gerenciaplanos/subscriptions/client/1",
               "host": ["{{base_url}}"],
-              "path": ["gestao", "assinaturas", "ATIVOS"]
+              "path": ["gerenciaplanos", "subscriptions", "client", "1"]
             },
-            "description": "Lista assinaturas por tipo: TODOS, ATIVOS ou CANCELADOS"
+            "description": "Lista todas as assinaturas de um cliente específico"
           },
           "response": []
         },
         {
-          "name": "Assinaturas por Cliente",
+          "name": "Listar Assinaturas por Plano",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/gestao/assinaturascliente/1",
+              "raw": "{{base_url}}/gerenciaplanos/subscriptions/plan/1",
               "host": ["{{base_url}}"],
-              "path": ["gestao", "assinaturascliente", "1"]
+              "path": ["gerenciaplanos", "subscriptions", "plan", "1"]
             },
-            "description": "Lista assinaturas de um cliente específico"
-          },
-          "response": []
-        },
-        {
-          "name": "Assinaturas por Plano",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/gestao/assinaturasplano/1",
-              "host": ["{{base_url}}"],
-              "path": ["gestao", "assinaturasplano", "1"]
-            },
-            "description": "Lista assinaturas de um plano específico"
+            "description": "Lista todas as assinaturas de um plano específico"
           },
           "response": []
         }
@@ -143,15 +189,10 @@
           "name": "Registrar Pagamento",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"dia\": 15,\n    \"mes\": 6,\n    \"ano\": 2025,\n    \"codAss\": 1,\n    \"valorPago\": 89.90\n}",
+              "raw": "{\n  \"dia\": 15,\n  \"mes\": 6,\n  \"ano\": 2025,\n  \"codAss\": 1,\n  \"valorPago\": 149.90\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -193,29 +234,6 @@
     {
       "key": "base_url",
       "value": "http://localhost:3000"
-    }
-  ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "exec": [
-          "// Configuração inicial para todos os requests"
-        ],
-        "type": "text/javascript"
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "exec": [
-          "// Testes automatizados podem ser adicionados aqui",
-          "pm.test(\"Status code is 200\", function () {",
-          "    pm.response.to.have.status(200);",
-          "});"
-        ],
-        "type": "text/javascript"
-      }
     }
   ]
 }
