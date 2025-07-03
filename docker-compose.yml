@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: 2901
       POSTGRES_DB: gestao
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -15,12 +15,21 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: admin
-      DB_PASSWORD: password
+      DB_USER: postgres
+      DB_PASSWORD: 2901
       DB_NAME: gestao
     depends_on:
       - postgres
-    command: sh -c "sleep 5 && npm run db:migrate && npm start"
+    command: >
+      sh -c "
+      echo 'Listando arquivos em /usr/src/app:';
+      ls -la /usr/src/app;
+      echo 'Listando migrações:';
+      ls -la /usr/src/app/src/database/migrations || true;
+      sleep 5;
+      npm run db:migrate;
+      npm start
+      "
     ports:
       - "3000:3000"
 
