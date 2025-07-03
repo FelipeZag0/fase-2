@@ -1,181 +1,164 @@
-# Sistema de Gestão de Assinaturas - Fase 2
+# Sistema de Gestão de Assinaturas com Arquitetura de Microsserviços
 
-Este projeto implementa um sistema de gestão de assinaturas para provedores de internet, seguindo os princípios de uma arquitetura limpa e incorporando microsserviços para gestão de faturamento e planos ativos.
+Este projeto implementa um sistema completo de gestão de assinaturas utilizando uma arquitetura de microsserviços. O sistema é composto por três serviços principais que trabalham em conjunto para gerenciar clientes, planos, assinaturas, pagamentos e status de planos ativos.
 
------
+## Diagrama de Arquitetura
 
-## Estrutura do Projeto
-
-O projeto é composto por três serviços principais:
-
-  - **Serviço de Gestão (Serviço Principal):** Responsável pela gestão de clientes, planos e assinaturas.
-  - **Serviço de Faturamento (Microsserviço):** Gerencia pagamentos e cobranças.
-  - **Serviço de Planos Ativos (Microsserviço):** Mantém um cache de assinaturas ativas e responde a consultas sobre a validade das assinaturas.
-
------
+```
++-------------------+     HTTP      +-------------------+     HTTP      +---------------------+
+|                   |<------------>|                   |<------------>|                     |
+|  Serviço Gestão   |               |  Serviço Fatura- |               |  Serviço Planos     |
+|  (Node.js)        |     Eventos   |  mento (Node.js) |     Eventos   |  Ativos (Node.js)   |
+|  Porta: 3000      |<------------>|  Porta: 3001     |<------------>|  Porta: 3002        |
++-------------------+               +-------------------+               +---------------------+
+        |  ^                               |  ^                               |  ^
+        |  |                               |  |                               |  |
+        v  |                               v  |                               v  |
++-------------------+               +-------------------+               +---------------------+
+|   PostgreSQL      |               |   In-memory DB    |               |   In-memory Cache   |
+|   (Dados persistentes)|               |   (Pagamentos)    |               |   (Planos ativos)   |
++-------------------+               +-------------------+               +---------------------+
+```
 
 ## Tecnologias Utilizadas
 
-  - Node.js
-  - Express.js
-  - SQLite (para o banco de dados do Serviço de Gestão)
-  - Message Broker (em memória para demonstração, com possibilidade de extensão para RabbitMQ/Kafka)
-  - Docker e Docker Compose
+- **Node.js**: Plataforma de execução para todos os serviços
+- **Express**: Framework web para construção das APIs REST
+- **Sequelize**: ORM para acesso ao banco de dados PostgreSQL
+- **Docker**: Conteinerização dos serviços e dependências
+- **PostgreSQL**: Banco de dados relacional para o serviço de gestão
+- **Axios**: Comunicação HTTP entre serviços
 
------
+## Serviços
 
-## Configuração e Execução
+### 1. Serviço de Gestão (servico-gestao2)
+**Porta:** 3000  
+Responsável pelo gerenciamento de clientes, planos e assinaturas. Mantém os dados principais do sistema em um banco PostgreSQL.
+
+Principais funcionalidades:
+- CRUD de clientes
+- CRUD de planos de assinatura
+- Gerenciamento de assinaturas (criação, listagem)
+- Integração com outros serviços
+
+### 2. Serviço de Faturamento (servico-faturamento)
+**Porta:** 3001  
+Responsável pelo registro e processamento de pagamentos. Utiliza um banco de dados em memória.
+
+Principais funcionalidades:
+- Registro de pagamentos
+- Validação de dados de pagamento
+- Comunicação de eventos de pagamento
+
+### 3. Serviço de Planos Ativos (servico-planos-ativos)
+**Porta:** 3002  
+Mantém um cache de assinaturas ativas para consulta rápida. Utiliza uma estrutura em memória.
+
+Principais funcionalidades:
+- Cache de assinaturas ativas
+- Verificação rápida do status de assinaturas
+- Atualização baseada em eventos de pagamento
+
+## Como Executar o Projeto
 
 ### Pré-requisitos
+- Docker instalado
+- Docker Compose instalado
 
-  - Docker Desktop instalado e em execução.
-  - Node.js e npm (opcional, caso prefira executar os serviços individualmente sem Docker Compose).
+### Passo a Passo
 
-### Passos para Executar com Docker Compose
+1. Clone o repositório:
+```bash
+git clone https://github.com/seu-usuario/sistema-assinaturas.git
+cd sistema-assinaturas
+```
 
-1.  **Clone o repositório (se aplicável) ou crie a estrutura do projeto conforme descrito.**
+2. Inicie os serviços com Docker Compose:
+```bash
+docker-compose up --build
+```
 
-2.  **Navegue até o diretório raiz do projeto (onde o `docker-compose.yml` está localizado).**
+3. Os serviços estarão disponíveis nas seguintes portas:
+   - Serviço Gestão: http://localhost:3000
+   - Serviço Faturamento: http://localhost:3001
+   - Serviço Planos Ativos: http://localhost:3002
 
-3.  **Construa e inicie os serviços:**
+## Endpoints da API
 
-    ```bash
-    docker-compose up --build
-    ```
+### Serviço de Gestão (http://localhost:3000)
 
-    Este comando irá:
+**Clientes**
+- `GET /gerenciaplanos/clients` - Lista todos os clientes
+- `POST /gerenciaplanos/clients` - Cria um novo cliente
+- `PUT /gerenciaplanos/clients/:id` - Atualiza um cliente
 
-      - Construir as imagens Docker para cada serviço com base em seus `Dockerfile` (que simplesmente copiarão o código e instalarão as dependências).
-      - Iniciar todos os três serviços em modo *detached*.
+**Planos**
+- `GET /gerenciaplanos/plans` - Lista todos os planos
+- `POST /gerenciaplanos/plans` - Cria um novo plano
+- `PUT /gerenciaplanos/plans/:id/cost` - Atualiza custo de um plano
 
-4.  **Verifique se os serviços estão em execução:**
+**Assinaturas**
+- `POST /gerenciaplanos/subscriptions` - Cria nova assinatura
+- `GET /gerenciaplanos/subscriptions/client/:codCli` - Assinaturas por cliente
+- `GET /gerenciaplanos/subscriptions/plan/:codPlano` - Assinaturas por plano
 
-    Você deverá ver uma saída indicando que cada serviço está "escutando" em sua respectiva porta (3000, 3001, 3002).
+### Serviço de Faturamento (http://localhost:3001)
+- `POST /registrarpagamento` - Registra um novo pagamento
 
-### Executando Serviços Individualmente (sem Docker Compose)
+### Serviço de Planos Ativos (http://localhost:3002)
+- `POST /active-plans/add` - Adiciona assinatura ao cache
+- `GET /active-plans/:codass` - Verifica se assinatura está ativa
 
-1.  **Navegue para o diretório de cada serviço (`servico-gestao`, `microservices/servico-faturamento`, `microservices/servico-planos-ativos`).**
+## Exemplos de Uso
 
-2.  **Instale as dependências:**
+### Criar um novo cliente
+```bash
+curl -X POST http://localhost:3000/gerenciaplanos/clients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "João Silva",
+    "email": "joao@exemplo.com",
+    "cpf": "123.456.789-00"
+  }'
+```
 
-    ```bash
-    npm install
-    ```
+### Registrar um pagamento
+```bash
+curl -X POST http://localhost:3001/registrarpagamento \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dia": 15,
+    "mes": 7,
+    "ano": 2025,
+    "codAss": 1,
+    "valorPago": 199.90
+  }'
+```
 
-3.  **Inicie cada serviço:**
+### Verificar se assinatura está ativa
+```bash
+curl -X GET http://localhost:3002/active-plans/1
+```
 
-    ```bash
-    npm run dev
-    ```
+## Fluxo de Funcionamento
 
-    (Este comando utiliza `nodemon` para reinícios automáticos em caso de alterações no código. Para produção, `npm start` seria usado.)
-
------
-
-## Endpoints da API (via Serviço de Gestão - Porta 3000)
-
-O `ServicoGestao` principal atua como um *API Gateway* para certas funcionalidades. A coleção do Postman (`postman-collection.json`) oferece um conjunto abrangente de requisições.
-
-### Serviço de Gerenciamento de Planos (Serviço de Gestão)
-
-  - **GET /gerenciaplanos/clients**: Lista todos os clientes.
-  - **POST /gerenciaplanos/clients**: Cria um novo cliente.
-    ```json
-    {
-        "name": "João da Silva",
-        "email": "joao.silva@example.com"
-    }
-    ```
-  - **PUT /gerenciaplanos/clients/:id**: Atualiza um cliente.
-    ```json
-    {
-        "name": "João da Silva Sauro"
-    }
-    ```
-  - **GET /gerenciaplanos/plans**: Lista todos os planos.
-  - **POST /gerenciaplanos/plans**: Cria um novo plano.
-    ```json
-    {
-        "name": "Internet Básica",
-        "description": "100 Mbps",
-        "price": 50.00
-    }
-    ```
-  - **PUT /gerenciaplanos/plans/:id/cost**: Atualiza o custo de um plano.
-    ```json
-    {
-        "newPrice": 55.00
-    }
-    ```
-  - **POST /gerenciaplanos/subscriptions**: Cria uma nova assinatura.
-    ```json
-    {
-        "codCli": 1,
-        "codPlano": 1,
-        "startDate": "2023-01-01"
-    }
-    ```
-  - **GET /gerenciaplanos/subscriptions/client/:codCli**: Lista assinaturas para um cliente específico.
-  - **GET /gerenciaplanos/subscriptions/plan/:codPlano**: Lista assinantes para um plano específico.
-
-### Serviço de Faturamento (Acessado via Serviço de Gestão - Porta 3000)
-
-  - **POST /registrarpagamento**: Registra um pagamento para uma assinatura. Esta requisição é tratada pelo `ServicoGestao`, que então a encaminha para o `ServicoFaturamento` (http://servico-faturamento:3001/payments).
-    ```json
-    {
-        "dia": 25,
-        "mes": 6,
-        "ano": 2025,
-        "codAss": 1,
-        "valorPago": 49.99
-    }
-    ```
-
-### Serviço de Planos Ativos (Acessado via Serviço de Gestão - Porta 3000)
-
-  - **GET /planosativos/:codass**: Verifica se uma assinatura específica está ativa. Esta requisição é tratada pelo `ServicoGestao`, que então a encaminha para o `ServicoPlanosAtivos` (http://servico-planos-ativos:3002/active-plans/:codass).
-
------
+1. Um novo cliente é cadastrado via Serviço de Gestão
+2. O cliente assina um plano, criando uma assinatura
+3. O Serviço de Gestão notifica o Serviço de Planos Ativos sobre a nova assinatura
+4. Quando um pagamento é registrado via Serviço de Faturamento:
+   - O pagamento é validado e armazenado
+   - Um evento é publicado para o Serviço de Planos Ativos
+   - O Serviço de Planos Ativos atualiza o status da assinatura
+5. Qualquer serviço pode verificar o status de uma assinatura consultando o Serviço de Planos Ativos
 
 ## Coleção Postman
 
-Uma coleção Postman chamada `postman-collection.json` é fornecida no diretório raiz. Você pode importar este arquivo para o Postman para testar facilmente todos os *endpoints*.
+Uma coleção completa do Postman está disponível no arquivo:
+`felipe_zago_Desenvolvimento_de_Sistemas_backend_Fase-2.postman-collection.json`
 
------
+Para importar:
+1. Abra o Postman
+2. Clique em "Import"
+3. Selecione o arquivo JSON fornecido
 
-## Conclusão e Observações de Desenvolvimento
-
-### Desafios Encontrados e Soluções
-
-1.  **Comunicação Entre Serviços:**
-
-      * **Desafio:** Decidir entre comunicação síncrona e assíncrona para diferentes cenários.
-      * **Solução:** Para consultas diretas ao `ServicoFaturamento` e `ServicoPlanosAtivos`, foram escolhidas requisições HTTP síncronas, com o `ServicoGestao` atuando como proxy/gateway. Para eventos de pagamento (que precisam atualizar o cache no `ServicoPlanosAtivos` sem bloquear o fluxo principal), um padrão de *message broker* assíncrono foi implementado. Embora um *message broker* completo como RabbitMQ não tenha sido configurado devido à complexidade dentro do escopo do projeto, um `MessageBrokerService` em memória foi criado para simular esse comportamento, demonstrando a arquitetura orientada a eventos.
-
-2.  **Manutenção do Cache de Planos Ativos:**
-
-      * **Desafio:** O `ServicoPlanosAtivos` precisa manter um cache rápido e atualizado de assinaturas ativas.
-      * **Solução:** Implementado um `SubscriptionCacheRepository` dentro do `ServicoPlanosAtivos` que armazena assinaturas ativas. Este cache é atualizado quando novas assinaturas são criadas (via chamada HTTP direta do `ServicoGestao`) e, crucialmente, quando pagamentos são registrados (via *message broker*). O `CheckSubscriptionUseCase` no `ServicoPlanosAtivos` consulta diretamente este cache.
-
-3.  **Adaptação da Arquitetura Limpa para Microsserviços:**
-
-      * **Desafio:** Aplicar os princípios da Arquitetura Limpa em múltiplos serviços, garantindo clara separação de preocupações dentro de cada um e definindo interfaces claras entre eles.
-      * **Solução:** Cada microsserviço (`ServicoFaturamento`, `ServicoPlanosAtivos`) foi projetado com sua própria estrutura de Arquitetura Limpa (Entidades, Casos de Uso, Repositórios, Controladores). Os pontos de comunicação (`MessageBrokerService`, requisições HTTP) foram tratados como interfaces externas, permitindo que cada serviço permanecesse em grande parte independente em sua lógica interna.
-
-4.  **Gerenciamento de Banco de Dados (SQLite para `ServicoGestao`):**
-
-      * **Desafio:** Garantir que o banco de dados SQLite para o `ServicoGestao` seja devidamente inicializado e persistido (para desenvolvimento local).
-      * **Solução:** O `Database.js` no `ServicoGestao` lida com a criação do arquivo `database.sqlite` e das tabelas necessárias na inicialização, caso não existam. Para Docker, uma montagem de volume garante que o arquivo do banco de dados persista entre as reinicializações do contêiner durante o desenvolvimento.
-
-### Referências que Auxiliaram no Desenvolvimento
-
-  - **Clean Architecture por Robert C. Martin (Uncle Bob):** Os princípios fundamentais para estruturar as camadas da aplicação.
-  - **Documentação Node.js & Express.js:** Para a construção das APIs RESTful.
-  - **Documentação SQLite:** Para operações básicas de banco de dados.
-  - **Padrão: API Gateway:** Entendimento de como um serviço central pode rotear requisições para múltiplos microsserviços.
-  - **Padrão: Publicador/Assinante (Message Broker):** Para implementar comunicação assíncrona entre serviços.
-
------
-
-Esta fase integrou com sucesso o `ServicoGestao` principal com novos microsserviços, demonstrando padrões de comunicação entre serviços e estendendo as capacidades do sistema conforme os requisitos do projeto.
-
+A coleção contém todos os endpoints configurados com exemplos de requisição.
