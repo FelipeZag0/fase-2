@@ -5,19 +5,24 @@ const cors = require('cors');
 class Server {
   constructor(appRouter) {
     this.app = express();
-    this.port = process.env.PORT || 3001; // Changed port to 3001
+    this.port = process.env.PORT || 3001;
     this.appRouter = appRouter;
     this._setupMiddleware();
     this._setupRoutes();
   }
 
   _setupMiddleware() {
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: 'http://localhost:3000',
+      methods: ['POST', 'GET', 'OPTIONS'],
+      allowedHeaders: ['Content-Type']
+    }));
+    
     this.app.use(express.json());
   }
 
   _setupRoutes() {
-    this.app.use('/', this.appRouter); // Use the router directly
+    this.app.use(this.appRouter);
   }
 
   start() {

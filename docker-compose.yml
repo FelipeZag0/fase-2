@@ -1,40 +1,44 @@
-# File: docker-compose.yml
-version: '3.8'
-
 services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2901
+      POSTGRES_DB: gestao
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   servico-gestao:
-    build: ./servico-gestao
+    build: ./servico-gestao2
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: password
+      DB_NAME: gestao
+    depends_on:
+      - postgres
+    command: sh -c "sleep 5 && npm run db:migrate && npm start"
     ports:
       - "3000:3000"
-    environment:
-      NODE_ENV: development
-    volumes:
-      - ./servico-gestao:/app
-      - /app/node_modules
-    command: npm run dev
-
-  servico-faturamento:
-    build: ./microservices/servico-faturamento
-    ports:
-      - "3001:3001"
-    environment:
-      NODE_ENV: development
-    volumes:
-      - ./microservices/servico-faturamento:/app
-      - /app/node_modules
-    command: npm run dev
 
   servico-planos-ativos:
-    build: ./microservices/servico-planos-ativos
+    build: ./servico-planos-ativos
+    volumes:
+      - ./servico-gestao2:/usr/src/servico-gestao2
+    depends_on:
+      - servico-gestao
+    ports:
+      - "3001:3001"
+
+  servico-faturamento:
+    build: ./servico-faturamento
+    depends_on:
+      - servico-gestao
     ports:
       - "3002:3002"
-    environment:
-      NODE_ENV: development
-    volumes:
-      - ./microservices/servico-planos-ativos:/app
-      - /app/node_modules
-    command: npm run dev
 
-networks:
-  default:
-    driver: bridge
+volumes:
+  postgres_data:

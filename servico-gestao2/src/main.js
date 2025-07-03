@@ -82,7 +82,7 @@ async function main() {
   // Microservice integration routes
   appRouter.getRouter().post('/registrarpagamento', async (req, res) => {
     try {
-      const response = await axios.post('http://servico-faturamento:3001/payments', req.body);
+      const response = await axios.post('http://servico-faturamento:3001/registrarpagamento', req.body);
       MessageBrokerService.publish('payment_event', req.body);
       res.status(response.status).json(response.data);
     } catch (error) {

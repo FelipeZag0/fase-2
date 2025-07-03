@@ -26,9 +26,14 @@ class ClientRepositoryPg {
     const newClient = await ClientModel.create({
       name: client.name,
       email: client.email,
-      cpf: client.cpf
+      cpf: client.cpf // Garante que o CPF seja salvo
     });
-    return new Client(newClient.codCli, newClient.name, newClient.email, newClient.cpf);
+    return new Client(
+      newClient.codCli,
+      newClient.name,
+      newClient.email,
+      newClient.cpf // Inclui CPF na entidade retornada
+    );
   }
 
   async update(client) {

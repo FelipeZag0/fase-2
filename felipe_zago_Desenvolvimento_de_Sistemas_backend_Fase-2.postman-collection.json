@@ -189,7 +189,12 @@
           "name": "Registrar Pagamento",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dia\": 15,\n  \"mes\": 6,\n  \"ano\": 2025,\n  \"codAss\": 1,\n  \"valorPago\": 149.90\n}",
@@ -200,8 +205,8 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/registrarpagamento",
-              "host": ["{{base_url}}"],
+              "raw": "{{base_url_faturamento}}/registrarpagamento",
+              "host": ["{{base_url_faturamento}}"],
               "path": ["registrarpagamento"]
             },
             "description": "Registra um pagamento de assinatura"
@@ -219,8 +224,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/planosativos/1",
-              "host": ["{{base_url}}"],
+              "raw": "{{base_url_planos_ativos}}/planosativos/1",
+              "host": ["{{base_url_planos_ativos}}"],
               "path": ["planosativos", "1"]
             },
             "description": "Verifica se uma assinatura está ativa"
@@ -234,6 +239,14 @@
     {
       "key": "base_url",
       "value": "http://localhost:3000"
+    },
+    {
+      "key": "base_url_faturamento",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "base_url_planos_ativos",
+      "value": "http://localhost:3002"
     }
   ]
 }

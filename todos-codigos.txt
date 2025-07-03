@@ -1,4 +1,4 @@
-﻿===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\application\use-cases\RegisterPaymentUseCase.js =====
+﻿===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\application\use-cases\RegisterPaymentUseCase.js =====
 // File: microservices/servico-faturamento/src/application/use-cases/RegisterPaymentUseCase.js
 const Payment = require('../../domain/entities/Payment');
 
@@ -8,13 +8,20 @@ class RegisterPaymentUseCase {
   }
 
   async execute(day, month, year, codAss, valorPago) {
-    const paymentDate = new Date(year, month - 1, day); // Month is 0-indexed in Date constructor
-    if (isNaN(paymentDate.getTime())) {
-      throw new Error('Formato de data de pagamento invÃ¡lido. Por favor, forneÃ§a dia, mÃªs e ano vÃ¡lidos.');
+
+    if (isNaN(day) || isNaN(month) || isNaN(year) || isNaN(valorPago)) {
+      throw new Error('Valores numÃ©ricos invÃ¡lidos');
     }
 
-    // In a real scenario, you might want to validate codAss exists in ServicoGestao
-    // and if valorPago is positive, etc.
+    const paymentDate = new Date(year, month - 1, day);
+
+    if (isNaN(paymentDate.getTime())) {
+      throw new Error('Data invÃ¡lida');
+    }
+
+    if (valorPago <= 0) {
+      throw new Error('Valor deve ser positivo');
+    }
 
     const payment = new Payment(null, paymentDate, codAss, valorPago);
     await this.paymentRepository.save(payment);
@@ -25,7 +32,7 @@ class RegisterPaymentUseCase {
 
 module.exports = RegisterPaymentUseCase;
 
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\domain\entities\Payment.js =====
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\domain\entities\Payment.js =====
 // File: microservices/servico-faturamento/src/domain/entities/Payment.js
 class Payment {
   constructor(id, paymentDate, subscriptionCode, amountPaid) {
@@ -38,27 +45,43 @@ class Payment {
 
 module.exports = Payment;
 
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\infra\controllers\PaymentController.js =====
-// File: microservices/servico-faturamento/src/infra/controllers/PaymentController.js
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\infra\controllers\PaymentController.js =====
+const Payment = require('../../domain/entities/Payment')
+
 class PaymentController {
   constructor(registerPaymentUseCase) {
     this.registerPaymentUseCase = registerPaymentUseCase;
   }
 
   async registerPayment(req, res) {
-    const { dia, mes, ano, codAss, valorPago } = req.body;
+    console.log('Body recebido:', req.body);
+
     try {
-      const payment = await this.registerPaymentUseCase.execute(dia, mes, ano, codAss, valorPago);
+      const { dia, mes, ano, codAss, valorPago } = req.body;
+
+      if (!dia || !mes || !ano || !codAss || !valorPago) {
+        return res.status(400).json({ error: "Todos os campos sÃ£o obrigatÃ³rios" });
+      }
+
+      const payment = await this.registerPaymentUseCase.execute(
+        parseInt(dia),
+        parseInt(mes),
+        parseInt(ano),
+        parseInt(codAss),
+        parseFloat(valorPago)
+      );
+
       res.status(201).json({ message: 'Pagamento registrado com sucesso!', payment });
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      console.log('ERRO CRÃTICO:', error);
+      res.status(400).json({ error: "Erro interno no servidor" });
     }
   }
 }
 
 module.exports = PaymentController;
 
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\infra\repositories\PaymentRepository.js =====
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\infra\repositories\PaymentRepository.js =====
 // File: microservices/servico-faturamento/src/infra/repositories/PaymentRepository.js
 // This is a simplified in-memory repository for demonstration.
 // In a real application, this would interact with a database.
@@ -83,27 +106,32 @@ class PaymentRepository {
 
 module.exports = PaymentRepository;
 
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\infra\web\routes.js =====
-// File: microservices/servico-faturamento/src/infra/web/routes.js
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\infra\web\routes.js =====
 const express = require('express');
 const appRouter = express.Router();
 
 module.exports = { appRouter };
 
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\main.js =====
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\main.js =====
 // File: microservices/servico-faturamento/src/main.js
 const Server = require('./server');
 const PaymentController = require('./infra/controllers/PaymentController');
 const PaymentRepository = require('./infra/repositories/PaymentRepository');
 const RegisterPaymentUseCase = require('./application/use-cases/RegisterPaymentUseCase');
-const { appRouter } = require('./infra/web/routes'); // Import the router instance
+const { appRouter } = require('./infra/web/routes');
 
 async function main() {
+  console.log("Iniciando ServicoFaturamento...");
   const paymentRepository = new PaymentRepository();
   const registerPaymentUseCase = new RegisterPaymentUseCase(paymentRepository);
   const paymentController = new PaymentController(registerPaymentUseCase);
 
-  appRouter.post('/payments', paymentController.registerPayment.bind(paymentController)); // Bind context
+  appRouter.get('/test', (req, res) => {
+    console.log("Rota /test acessada!");
+    res.status(200).json({ status: "online", service: "ServicoFaturamento" });
+  });
+
+  appRouter.post('/registrarpagamento', paymentController.registerPayment.bind(paymentController));
 
   const server = new Server(appRouter);
   server.start();
@@ -111,7 +139,7 @@ async function main() {
 
 main();
 
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-faturamento\src\server.js =====
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-faturamento\src\server.js =====
 // File: microservices/servico-faturamento/src/server.js
 const express = require('express');
 const cors = require('cors');
@@ -119,197 +147,29 @@ const cors = require('cors');
 class Server {
   constructor(appRouter) {
     this.app = express();
-    this.port = process.env.PORT || 3001; // Changed port to 3001
+    this.port = process.env.PORT || 3001;
     this.appRouter = appRouter;
     this._setupMiddleware();
     this._setupRoutes();
   }
 
   _setupMiddleware() {
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: 'http://localhost:3000',
+      methods: ['POST', 'GET', 'OPTIONS'],
+      allowedHeaders: ['Content-Type']
+    }));
+    
     this.app.use(express.json());
   }
 
   _setupRoutes() {
-    this.app.use('/', this.appRouter); // Use the router directly
+    this.app.use(this.appRouter);
   }
 
   start() {
     this.app.listen(this.port, () => {
       console.log(`ServicoFaturamento running on port ${this.port}`);
-    });
-  }
-}
-
-module.exports = Server;
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\application\use-cases\CheckSubscriptionUseCase.js =====
-// File: microservices/servico-planos-ativos/src/application/use-cases/CheckSubscriptionUseCase.js
-class CheckSubscriptionUseCase {
-  constructor(activePlanCacheService) {
-    this.activePlanCacheService = activePlanCacheService;
-  }
-
-  async execute(subscriptionCode) {
-    return this.activePlanCacheService.isSubscriptionActive(subscriptionCode);
-  }
-}
-
-module.exports = CheckSubscriptionUseCase;
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\application\use-cases\ProcessPaymentEventUseCase.js =====
-// File: microservices/servico-planos-ativos/src/application/use-cases/ProcessPaymentEventUseCase.js
-class ProcessPaymentEventUseCase {
-  constructor(activePlanCacheService) {
-    this.activePlanCacheService = activePlanCacheService;
-  }
-
-  async execute(subscriptionCode, day, month, year) {
-    const paymentDate = new Date(year, month - 1, day);
-    // In a real system, you would verify the payment details
-    // For this demonstration, we'll assume a payment means the subscription is active.
-    this.activePlanCacheService.markSubscriptionAsActive(subscriptionCode);
-    console.log(`[ServicoPlanosAtivos] Subscription ${subscriptionCode} marked as active due to payment on ${paymentDate.toISOString().split('T')[0]}`);
-  }
-}
-
-module.exports = ProcessPaymentEventUseCase;
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\domain\services\ActivePlanCacheService.js =====
-// File: microservices/servico-planos-ativos/src/domain/services/ActivePlanCacheService.js
-class ActivePlanCacheService {
-  constructor(subscriptionCacheRepository) {
-    this.subscriptionCacheRepository = subscriptionCacheRepository;
-  }
-
-  async isSubscriptionActive(subscriptionCode) {
-    return await this.subscriptionCacheRepository.isActive(subscriptionCode);
-  }
-
-  async markSubscriptionAsActive(subscriptionCode) {
-    await this.subscriptionCacheRepository.addActiveSubscription(subscriptionCode);
-  }
-
-  async removeSubscriptionFromCache(subscriptionCode) {
-    await this.subscriptionCacheRepository.removeActiveSubscription(subscriptionCode);
-  }
-}
-
-module.exports = ActivePlanCacheService;
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\infra\controllers\ActivePlansController.js =====
-// File: microservices/servico-planos-ativos/src/infra/controllers/ActivePlansController.js
-class ActivePlansController {
-  constructor(checkSubscriptionUseCase) {
-    this.checkSubscriptionUseCase = checkSubscriptionUseCase;
-  }
-
-  async checkSubscription(req, res) {
-    const { codass } = req.params;
-    try {
-      const isActive = await this.checkSubscriptionUseCase.execute(parseInt(codass));
-      res.status(200).json(isActive);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
-module.exports = ActivePlansController;
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\infra\repositories\SubscriptionCacheRepository.js =====
-// File: microservices/servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js
-// This is a simplified in-memory cache for demonstration.
-// In a real application, this would use a proper caching solution like Redis.
-
-class SubscriptionCacheRepository {
-  constructor() {
-    this.activeSubscriptions = new Set(); // Stores active subscription IDs
-  }
-
-  async isActive(subscriptionCode) {
-    return this.activeSubscriptions.has(subscriptionCode);
-  }
-
-  async addActiveSubscription(subscriptionCode) {
-    this.activeSubscriptions.add(subscriptionCode);
-    console.log(`[ServicoPlanosAtivos Cache] Added subscription ${subscriptionCode}`);
-  }
-
-  async removeActiveSubscription(subscriptionCode) {
-    this.activeSubscriptions.delete(subscriptionCode);
-    console.log(`[ServicoPlanosAtivos Cache] Removed subscription ${subscriptionCode}`);
-  }
-}
-
-module.exports = SubscriptionCacheRepository;
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\infra\web\routes.js =====
-// File: microservices/servico-planos-ativos/src/infra/web/routes.js
-const express = require('express');
-const appRouter = express.Router();
-
-module.exports = { appRouter };
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\main.js =====
-// File: microservices/servico-planos-ativos/src/main.js
-const Server = require('./server');
-const ActivePlansController = require('./infra/controllers/ActivePlansController');
-const SubscriptionCacheRepository = require('./infra/repositories/SubscriptionCacheRepository');
-const ActivePlanCacheService = require('./domain/services/ActivePlanCacheService');
-const CheckSubscriptionUseCase = require('./application/use-cases/CheckSubscriptionUseCase');
-const ProcessPaymentEventUseCase = require('./application/use-cases/ProcessPaymentEventUseCase');
-const { appRouter } = require('./infra/web/routes');
-const MessageBrokerService = require('../../servico-gestao/src/application/services/MessageBrokerService'); // Importing from ServicoGestao for shared in-memory broker
-
-async function main() {
-  const subscriptionCacheRepository = new SubscriptionCacheRepository();
-  const activePlanCacheService = new ActivePlanCacheService(subscriptionCacheRepository);
-  const checkSubscriptionUseCase = new CheckSubscriptionUseCase(activePlanCacheService);
-  const processPaymentEventUseCase = new ProcessPaymentEventUseCase(activePlanCacheService);
-
-  const activePlansController = new ActivePlansController(checkSubscriptionUseCase);
-
-  appRouter.get('/active-plans/:codass', activePlansController.checkSubscription.bind(activePlansController));
-
-  // Subscribe to payment events
-  MessageBrokerService.subscribe('payment_event', (data) => {
-    console.log('[ServicoPlanosAtivos] Received payment event:', data);
-    processPaymentEventUseCase.execute(data.codAss, data.dia, data.mes, data.ano);
-  });
-
-  const server = new Server(appRouter);
-  server.start();
-}
-
-main();
-
-===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\microservices\servico-planos-ativos\src\server.js =====
-// File: microservices/servico-planos-ativos/src/server.js
-const express = require('express');
-const cors = require('cors');
-
-class Server {
-  constructor(appRouter) {
-    this.app = express();
-    this.port = process.env.PORT || 3002; // Changed port to 3002
-    this.appRouter = appRouter;
-    this._setupMiddleware();
-    this._setupRoutes();
-  }
-
-  _setupMiddleware() {
-    this.app.use(cors());
-    this.app.use(express.json());
-  }
-
-  _setupRoutes() {
-    this.app.use('/', this.appRouter);
-  }
-
-  start() {
-    this.app.listen(this.port, () => {
-      console.log(`ServicoPlanosAtivos running on port ${this.port}`);
     });
   }
 }
@@ -1514,6 +1374,7 @@ class SubscriptionController {
 module.exports = SubscriptionController;
 
 ===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-gestao2\src\infrastructure\web\routes\AppRouter.js =====
+const axios = require('axios');
 const express = require('express');
 
 class AppRouter {
@@ -1635,7 +1496,7 @@ async function main() {
   // Microservice integration routes
   appRouter.getRouter().post('/registrarpagamento', async (req, res) => {
     try {
-      const response = await axios.post('http://servico-faturamento:3001/payments', req.body);
+      const response = await axios.post('http://servico-faturamento:3001/registrarpagamento', req.body);
       MessageBrokerService.publish('payment_event', req.body);
       res.status(response.status).json(response.data);
     } catch (error) {
@@ -1693,6 +1554,179 @@ class Server {
   start() {
     this.app.listen(this.port, () => {
       console.log(`Server running on port ${this.port}`);
+    });
+  }
+}
+
+module.exports = Server;
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\application\use-cases\CheckSubscriptionUseCase.js =====
+// File: microservices/servico-planos-ativos/src/application/use-cases/CheckSubscriptionUseCase.js
+class CheckSubscriptionUseCase {
+  constructor(activePlanCacheService) {
+    this.activePlanCacheService = activePlanCacheService;
+  }
+
+  async execute(subscriptionCode) {
+    return this.activePlanCacheService.isSubscriptionActive(subscriptionCode);
+  }
+}
+
+module.exports = CheckSubscriptionUseCase;
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\application\use-cases\ProcessPaymentEventUseCase.js =====
+// File: microservices/servico-planos-ativos/src/application/use-cases/ProcessPaymentEventUseCase.js
+class ProcessPaymentEventUseCase {
+  constructor(activePlanCacheService) {
+    this.activePlanCacheService = activePlanCacheService;
+  }
+
+  async execute(subscriptionCode, day, month, year) {
+    const paymentDate = new Date(year, month - 1, day);
+    // In a real system, you would verify the payment details
+    // For this demonstration, we'll assume a payment means the subscription is active.
+    this.activePlanCacheService.markSubscriptionAsActive(subscriptionCode);
+    console.log(`[ServicoPlanosAtivos] Subscription ${subscriptionCode} marked as active due to payment on ${paymentDate.toISOString().split('T')[0]}`);
+  }
+}
+
+module.exports = ProcessPaymentEventUseCase;
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\domain\services\ActivePlanCacheService.js =====
+// File: microservices/servico-planos-ativos/src/domain/services/ActivePlanCacheService.js
+class ActivePlanCacheService {
+  constructor(subscriptionCacheRepository) {
+    this.subscriptionCacheRepository = subscriptionCacheRepository;
+  }
+
+  async isSubscriptionActive(subscriptionCode) {
+    return await this.subscriptionCacheRepository.isActive(subscriptionCode);
+  }
+
+  async markSubscriptionAsActive(subscriptionCode) {
+    await this.subscriptionCacheRepository.addActiveSubscription(subscriptionCode);
+  }
+
+  async removeSubscriptionFromCache(subscriptionCode) {
+    await this.subscriptionCacheRepository.removeActiveSubscription(subscriptionCode);
+  }
+}
+
+module.exports = ActivePlanCacheService;
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\infra\controllers\ActivePlansController.js =====
+// File: microservices/servico-planos-ativos/src/infra/controllers/ActivePlansController.js
+class ActivePlansController {
+  constructor(checkSubscriptionUseCase) {
+    this.checkSubscriptionUseCase = checkSubscriptionUseCase;
+  }
+
+  async checkSubscription(req, res) {
+    const { codass } = req.params;
+    try {
+      const isActive = await this.checkSubscriptionUseCase.execute(parseInt(codass));
+      res.status(200).json(isActive);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+}
+
+module.exports = ActivePlansController;
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\infra\repositories\SubscriptionCacheRepository.js =====
+// File: microservices/servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js
+// This is a simplified in-memory cache for demonstration.
+// In a real application, this would use a proper caching solution like Redis.
+
+class SubscriptionCacheRepository {
+  constructor() {
+    this.activeSubscriptions = new Set(); // Stores active subscription IDs
+  }
+
+  async isActive(subscriptionCode) {
+    return this.activeSubscriptions.has(subscriptionCode);
+  }
+
+  async addActiveSubscription(subscriptionCode) {
+    this.activeSubscriptions.add(subscriptionCode);
+    console.log(`[ServicoPlanosAtivos Cache] Added subscription ${subscriptionCode}`);
+  }
+
+  async removeActiveSubscription(subscriptionCode) {
+    this.activeSubscriptions.delete(subscriptionCode);
+    console.log(`[ServicoPlanosAtivos Cache] Removed subscription ${subscriptionCode}`);
+  }
+}
+
+module.exports = SubscriptionCacheRepository;
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\infra\web\routes.js =====
+// File: microservices/servico-planos-ativos/src/infra/web/routes.js
+const express = require('express');
+const appRouter = express.Router();
+
+module.exports = { appRouter };
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\main.js =====
+// File: microservices/servico-planos-ativos/src/main.js
+const Server = require('./server');
+const ActivePlansController = require('./infra/controllers/ActivePlansController');
+const SubscriptionCacheRepository = require('./infra/repositories/SubscriptionCacheRepository');
+const ActivePlanCacheService = require('./domain/services/ActivePlanCacheService');
+const CheckSubscriptionUseCase = require('./application/use-cases/CheckSubscriptionUseCase');
+const ProcessPaymentEventUseCase = require('./application/use-cases/ProcessPaymentEventUseCase');
+const { appRouter } = require('./infra/web/routes');
+const MessageBrokerService = require('../../servico-gestao2/src/application/services/MessageBrokerService'); 
+
+async function main() {
+  const subscriptionCacheRepository = new SubscriptionCacheRepository();
+  const activePlanCacheService = new ActivePlanCacheService(subscriptionCacheRepository);
+  const checkSubscriptionUseCase = new CheckSubscriptionUseCase(activePlanCacheService);
+  const processPaymentEventUseCase = new ProcessPaymentEventUseCase(activePlanCacheService);
+
+  const activePlansController = new ActivePlansController(checkSubscriptionUseCase);
+
+  appRouter.get('/active-plans/:codass', activePlansController.checkSubscription.bind(activePlansController));
+
+  // Subscribe to payment events
+  MessageBrokerService.subscribe('payment_event', (data) => {
+    console.log('[ServicoPlanosAtivos] Received payment event:', data);
+    processPaymentEventUseCase.execute(data.codAss, data.dia, data.mes, data.ano);
+  });
+
+  const server = new Server(appRouter);
+  server.start();
+}
+
+main();
+
+===== C:\Users\felip\OneDrive - PUCRS - BR\ADS - PUCRS\11. DSB - Desenvolvimento de Sistemas Backend\AVALIAÇÕES\F02\fase-2\servico-planos-ativos\src\server.js =====
+// File: microservices/servico-planos-ativos/src/server.js
+const express = require('express');
+const cors = require('cors');
+
+class Server {
+  constructor(appRouter) {
+    this.app = express();
+    this.port = process.env.PORT || 3002; // Changed port to 3002
+    this.appRouter = appRouter;
+    this._setupMiddleware();
+    this._setupRoutes();
+  }
+
+  _setupMiddleware() {
+    this.app.use(cors());
+    this.app.use(express.json());
+  }
+
+  _setupRoutes() {
+    this.app.use('/', this.appRouter);
+  }
+
+  start() {
+    this.app.listen(this.port, () => {
+      console.log(`ServicoPlanosAtivos running on port ${this.port}`);
     });
   }
 }
