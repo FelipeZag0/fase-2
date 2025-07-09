@@ -1,4 +1,4 @@
-const Payment = require('../../domain/entities/Payment')
+const Payment = require('../../domain/entities/Payment');
 
 class PaymentController {
   constructor(registerPaymentUseCase) {
@@ -9,24 +9,47 @@ class PaymentController {
     console.log('Body recebido:', req.body);
 
     try {
-      const { dia, mes, ano, codAss, valorPago } = req.body;
+      // Conversão explícita
+      const diaInt       = parseInt(req.body.dia, 10);
+      const mesInt       = parseInt(req.body.mes, 10);
+      const anoInt       = parseInt(req.body.ano, 10);
+      const codAssInt    = parseInt(req.body.codAss, 10);
+      const valorPagoNum = parseFloat(req.body.valorPago);
 
-      if (!dia || !mes || !ano || !codAss || !valorPago) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
+      // Validação
+      if ([diaInt, mesInt, anoInt, codAssInt].some(v => isNaN(v)) 
+          || isNaN(valorPagoNum)) {
+        return res
+          .status(400)
+          .json({ error: 'Dados inválidos. Verifique os campos enviados.' });
       }
 
-      const payment = await this.registerPaymentUseCase.execute(
-        parseInt(dia),
-        parseInt(mes),
-        parseInt(ano),
-        parseInt(codAss),
-        parseFloat(valorPago)
-      );
+      // Se quiser usar a entidade de domínio:
+      const payment = new Payment({
+        dia:    diaInt,
+        mes:    mesInt,
+        ano:    anoInt,
+        codAss: codAssInt,
+        valor:  valorPagoNum
+      });
 
-      res.status(201).json({ message: 'Pagamento registrado com sucesso!', payment });
+      // Chama o caso de uso
+      const updatedSubscription = await this
+        .registerPaymentUseCase
+        .execute(payment);
+
+      return res
+        .status(201)
+        .json({
+          message: 'Pagamento registrado com sucesso!',
+          subscription: updatedSubscription
+        });
+        
     } catch (error) {
-      console.log('ERRO CRÍTICO:', error);
-      res.status(400).json({ error: "Erro interno no servidor" });
+      console.error('ERRO CRÍTICO:', error);
+      return res
+        .status(500)
+        .json({ error: 'Erro interno no servidor.' });
     }
   }
 }

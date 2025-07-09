@@ -20,6 +20,7 @@ const PlanModel = sequelize.define('Plan', {
   monthlyCost: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
+    field: 'monthlyCost',
   },
   maxClients: {
     type: DataTypes.INTEGER,

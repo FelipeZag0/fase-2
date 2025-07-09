@@ -1,5 +1,4 @@
 class PlanController {
-  // CORREÇÃO: Ordem correta dos parâmetros
   constructor(listPlansUseCase, createPlanUseCase, updatePlanCostUseCase) {
     this.listPlansUseCase = listPlansUseCase;
     this.createPlanUseCase = createPlanUseCase;
@@ -22,14 +21,30 @@ class PlanController {
     console.log('Recebido para criar plano:', req.body);
     try {
       const { name, description, price } = req.body;
-      if (!name || !description || typeof price !== 'number') {
-        return res.status(400).json({ error: 'Bad Request: name, description, and price (number) are required.' });
+
+      const priceNumber = parseFloat(price);
+
+      if (!name || !description || isNaN(priceNumber)) {
+        return res.status(400).json({
+          error: 'Bad Request: name, description, and valid price are required.'
+        });
       }
-      const newPlan = await this.createPlanUseCase.execute({ name, description, price });
+
+      const newPlan = await this.createPlanUseCase.execute(
+        name, 
+        description, 
+        priceNumber, 
+      );
+
+      console.log('Plano criado:', newPlan);
+
       res.status(201).json(newPlan);
     } catch (error) {
       console.error('Error creating plan:', error.message);
-      res.status(500).json({ error: 'Failed to create plan.' });
+      res.status(500).json({
+        error: 'Failed to create plan.',
+        details: error.message
+      });
     }
   }
 

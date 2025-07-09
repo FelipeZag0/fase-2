@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../../config/database.js'); 
+const sequelize = require('../../../config/database.js'); 
 const ClientModel = require('./ClientModel');
 const PlanModel = require('./PlanModel');
 
@@ -39,11 +39,11 @@ const SubscriptionModel = sequelize.define('Subscription', {
     allowNull: false,
     defaultValue: 'active',
   },
-  lastPaymentDate: {
+  cancellationDate: { // CAMPO ADICIONADO
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
-  nextPaymentDate: {
+  nextPaymentDate: { // CAMPO ADICIONADO
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
@@ -55,10 +55,7 @@ const SubscriptionModel = sequelize.define('Subscription', {
 SubscriptionModel.belongsTo(ClientModel, { foreignKey: 'codCli' });
 SubscriptionModel.belongsTo(PlanModel, { foreignKey: 'codPlano' });
 
-// Um cliente pode ter muitas assinaturas
 ClientModel.hasMany(SubscriptionModel, { foreignKey: 'codCli' });
-
-// Um plano pode ter muitas assinaturas
 PlanModel.hasMany(SubscriptionModel, { foreignKey: 'codPlano' });
 
 module.exports = SubscriptionModel;

@@ -1,0 +1,1809 @@
+===== ./servico-faturamento/src/infra/repositories/PaymentRepository.js =====
+// File: microservices/servico-faturamento/src/infra/repositories/PaymentRepository.js
+// This is a simplified in-memory repository for demonstration.
+// In a real application, this would interact with a database.
+
+class PaymentRepository {
+  constructor() {
+    this.payments = [];
+    this.nextId = 1;
+  }
+
+  async save(payment) {
+    payment.id = this.nextId++;
+    this.payments.push(payment);
+    console.log(`[ServicoFaturamento] Payment recorded: Subscription ${payment.subscriptionCode}, Amount: ${payment.amountPaid}`);
+    return payment;
+  }
+
+  async findAll() {
+    return this.payments;
+  }
+}
+
+module.exports = PaymentRepository;
+===== ./servico-faturamento/src/infra/web/routes.js =====
+const express = require('express');
+const appRouter = express.Router();
+
+module.exports = { appRouter };
+===== ./servico-faturamento/src/infra/controllers/PaymentController.js =====
+const Payment = require('../../domain/entities/Payment');
+
+class PaymentController {
+  constructor(registerPaymentUseCase) {
+    this.registerPaymentUseCase = registerPaymentUseCase;
+  }
+
+  async registerPayment(req, res) {
+    console.log('Body recebido:', req.body);
+
+    try {
+      // Conversão explícita
+      const diaInt       = parseInt(req.body.dia, 10);
+      const mesInt       = parseInt(req.body.mes, 10);
+      const anoInt       = parseInt(req.body.ano, 10);
+      const codAssInt    = parseInt(req.body.codAss, 10);
+      const valorPagoNum = parseFloat(req.body.valorPago);
+
+      // Validação
+      if ([diaInt, mesInt, anoInt, codAssInt].some(v => isNaN(v)) 
+          || isNaN(valorPagoNum)) {
+        return res
+          .status(400)
+          .json({ error: 'Dados inválidos. Verifique os campos enviados.' });
+      }
+
+      // Se quiser usar a entidade de domínio:
+      const payment = new Payment({
+        dia:    diaInt,
+        mes:    mesInt,
+        ano:    anoInt,
+        codAss: codAssInt,
+        valor:  valorPagoNum
+      });
+
+      // Chama o caso de uso
+      const updatedSubscription = await this
+        .registerPaymentUseCase
+        .execute(payment);
+
+      return res
+        .status(201)
+        .json({
+          message: 'Pagamento registrado com sucesso!',
+          subscription: updatedSubscription
+        });
+        
+    } catch (error) {
+      console.error('ERRO CRÍTICO:', error);
+      return res
+        .status(500)
+        .json({ error: 'Erro interno no servidor.' });
+    }
+  }
+}
+
+module.exports = PaymentController;
+
+===== ./servico-faturamento/src/main.js =====
+const Server = require('./server');
+const PaymentController = require('./infra/controllers/PaymentController');
+const PaymentRepository = require('./infra/repositories/PaymentRepository');
+const RegisterPaymentUseCase = require('./application/use-cases/RegisterPaymentUseCase');
+const { appRouter } = require('./infra/web/routes');
+const express = require('express'); // Adicionado
+
+async function main() {
+  console.log("Iniciando ServicoFaturamento...");
+  const paymentRepository = new PaymentRepository();
+  const registerPaymentUseCase = new RegisterPaymentUseCase(paymentRepository);
+  const paymentController = new PaymentController(registerPaymentUseCase);
+
+  appRouter.get('/test', (req, res) => {
+    console.log("Rota /test acessada!");
+    res.status(200).json({ status: "online", service: "ServicoFaturamento" });
+  });
+
+  appRouter.post('/registrarpagamento', paymentController.registerPayment.bind(paymentController));
+
+  const server = new Server(appRouter);
+  
+  // MIDDLEWARE ADICIONADO PARA CORRIGIR PARSING DE JSON
+  server.app.use(express.json());
+  
+  server.start();
+}
+
+main();
+===== ./servico-faturamento/src/domain/entities/Payment.js =====
+// File: microservices/servico-faturamento/src/domain/entities/Payment.js
+class Payment {
+  constructor(id, paymentDate, subscriptionCode, amountPaid) {
+    this.id = id;
+    this.paymentDate = paymentDate;
+    this.subscriptionCode = subscriptionCode;
+    this.amountPaid = amountPaid;
+  }
+}
+
+module.exports = Payment;
+===== ./servico-faturamento/src/server.js =====
+// File: microservices/servico-faturamento/src/server.js
+const express = require('express');
+const cors = require('cors');
+
+class Server {
+  constructor(appRouter) {
+    this.app = express();
+    this.port = process.env.PORT || 3001;
+    this.appRouter = appRouter;
+    this._setupMiddleware();
+    this._setupRoutes();
+  }
+
+  _setupMiddleware() {
+    this.app.use(cors({
+      origin: 'http://localhost:3000',
+      methods: ['POST', 'GET', 'OPTIONS'],
+      allowedHeaders: ['Content-Type']
+    }));
+    
+    this.app.use(express.json());
+  }
+
+  _setupRoutes() {
+    this.app.use(this.appRouter);
+  }
+
+  start() {
+    this.app.listen(this.port, () => {
+      console.log(`ServicoFaturamento running on port ${this.port}`);
+    });
+  }
+}
+
+module.exports = Server;
+===== ./servico-faturamento/src/application/use-cases/RegisterPaymentUseCase.js =====
+const Payment = require('../../domain/entities/Payment');
+
+class RegisterPaymentUseCase {
+  constructor(paymentRepository) {
+    this.paymentRepository = paymentRepository;
+  }
+
+  async execute(day, month, year, codAss, valorPago) {
+    const diaInt = parseInt(day);
+    const mesInt = parseInt(month);
+    const anoInt = parseInt(year);
+    const valorFloat = parseFloat(valorPago);
+
+    if (isNaN(diaInt) || isNaN(mesInt) || isNaN(anoInt) || isNaN(valorFloat)) {
+      throw new Error('Valores numéricos inválidos');
+    }
+
+    const paymentDate = new Date(anoInt, mesInt - 1, diaInt);
+
+    if (isNaN(paymentDate.getTime())) {
+      throw new Error('Data inválida');
+    }
+
+    if (valorFloat <= 0) {
+      throw new Error('Valor deve ser positivo');
+    }
+
+    const payment = new Payment(null, paymentDate, codAss, valorFloat);
+    await this.paymentRepository.save(payment);
+
+    return payment;
+  }
+}
+
+module.exports = RegisterPaymentUseCase;
+===== ./servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js =====
+// File: microservices/servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js
+// This is a simplified in-memory cache for demonstration.
+// In a real application, this would use a proper caching solution like Redis.
+
+class SubscriptionCacheRepository {
+  constructor() {
+    this.activeSubscriptions = new Set(); // Stores active subscription IDs
+  }
+
+  async isActive(subscriptionCode) {
+    return this.activeSubscriptions.has(subscriptionCode);
+  }
+
+  async addActiveSubscription(subscriptionCode) {
+    this.activeSubscriptions.add(subscriptionCode);
+    console.log(`[ServicoPlanosAtivos Cache] Added subscription ${subscriptionCode}`);
+  }
+
+  async removeActiveSubscription(subscriptionCode) {
+    this.activeSubscriptions.delete(subscriptionCode);
+    console.log(`[ServicoPlanosAtivos Cache] Removed subscription ${subscriptionCode}`);
+  }
+}
+
+module.exports = SubscriptionCacheRepository;
+===== ./servico-planos-ativos/src/infra/web/routes.js =====
+// File: microservices/servico-planos-ativos/src/infra/web/routes.js
+const express = require('express');
+const appRouter = express.Router();
+
+module.exports = { appRouter };
+===== ./servico-planos-ativos/src/infra/controllers/ActivePlansController.js =====
+class ActivePlansController {
+  constructor(activePlanCacheService) {
+    this.activePlanCacheService = activePlanCacheService;
+  }
+
+  async addActiveSubscription(req, res) {
+    const { subscriptionCode } = req.body;
+
+    // VALIDAÇÃO ADICIONAL (RECOMENDADO)
+    if (!subscriptionCode || isNaN(subscriptionCode)) {
+      return res.status(400).json({ error: 'Invalid subscriptionCode' });
+    }
+
+    try {
+      await this.activePlanCacheService.markSubscriptionAsActive(parseInt(subscriptionCode));
+      res.status(200).json({
+        message: `Subscription ${subscriptionCode} marked as active`
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async checkSubscription(req, res) {
+    const { codass } = req.params;
+    try {
+      const isActive = await this.activePlanCacheService.isSubscriptionActive(parseInt(codass));
+      res.status(200).json({ active: isActive });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+}
+
+module.exports = ActivePlansController;
+
+===== ./servico-planos-ativos/src/main.js =====
+const Server = require('./server');
+const ActivePlansController = require('./infra/controllers/ActivePlansController');
+const SubscriptionCacheRepository = require('./infra/repositories/SubscriptionCacheRepository');
+const ActivePlanCacheService = require('./domain/services/ActivePlanCacheService');
+const ProcessPaymentEventUseCase = require('./application/use-cases/ProcessPaymentEventUseCase');
+const { appRouter } = require('./infra/web/routes');
+const express = require('express');
+
+async function main() {
+  const subscriptionCacheRepository = new SubscriptionCacheRepository();
+  const activePlanCacheService = new ActivePlanCacheService(subscriptionCacheRepository);
+  const processPaymentEventUseCase = new ProcessPaymentEventUseCase(activePlanCacheService);
+
+  const activePlansController = new ActivePlansController(activePlanCacheService);
+
+  appRouter.post('/active-plans/add', activePlansController.addActiveSubscription.bind(activePlansController));
+  appRouter.get('/active-plans/:codass', activePlansController.checkSubscription.bind(activePlansController));
+
+  // Middleware para parsing de JSON
+  const app = express();
+  app.use(express.json());
+  app.use(appRouter);
+
+  const server = new Server(appRouter);
+  server.start();
+}
+
+main();
+===== ./servico-planos-ativos/src/domain/services/ActivePlanCacheService.js =====
+// File: microservices/servico-planos-ativos/src/domain/services/ActivePlanCacheService.js
+class ActivePlanCacheService {
+  constructor(subscriptionCacheRepository) {
+    this.subscriptionCacheRepository = subscriptionCacheRepository;
+  }
+
+  async isSubscriptionActive(subscriptionCode) {
+    return await this.subscriptionCacheRepository.isActive(subscriptionCode);
+  }
+
+  async markSubscriptionAsActive(subscriptionCode) {
+    await this.subscriptionCacheRepository.addActiveSubscription(subscriptionCode);
+  }
+
+  async removeSubscriptionFromCache(subscriptionCode) {
+    await this.subscriptionCacheRepository.removeActiveSubscription(subscriptionCode);
+  }
+}
+
+module.exports = ActivePlanCacheService;
+===== ./servico-planos-ativos/src/server.js =====
+// File: microservices/servico-planos-ativos/src/server.js
+const express = require('express');
+const cors = require('cors');
+
+class Server {
+  constructor(appRouter) {
+    this.app = express();
+    this.port = process.env.PORT || 3002; // Changed port to 3002
+    this.appRouter = appRouter;
+    this._setupMiddleware();
+    this._setupRoutes();
+  }
+
+  _setupMiddleware() {
+    this.app.use(cors());
+    this.app.use(express.json());
+  }
+
+  _setupRoutes() {
+    this.app.use('/', this.appRouter);
+  }
+
+  start() {
+    this.app.listen(this.port, () => {
+      console.log(`ServicoPlanosAtivos running on port ${this.port}`);
+    });
+  }
+}
+
+module.exports = Server;
+===== ./servico-planos-ativos/src/application/use-cases/CheckSubscriptionUseCase.js =====
+// File: microservices/servico-planos-ativos/src/application/use-cases/CheckSubscriptionUseCase.js
+class CheckSubscriptionUseCase {
+  constructor(activePlanCacheService) {
+    this.activePlanCacheService = activePlanCacheService;
+  }
+
+  async execute(subscriptionCode) {
+    return this.activePlanCacheService.isSubscriptionActive(subscriptionCode);
+  }
+}
+
+module.exports = CheckSubscriptionUseCase;
+===== ./servico-planos-ativos/src/application/use-cases/ProcessPaymentEventUseCase.js =====
+// File: microservices/servico-planos-ativos/src/application/use-cases/ProcessPaymentEventUseCase.js
+class ProcessPaymentEventUseCase {
+  constructor(activePlanCacheService) {
+    this.activePlanCacheService = activePlanCacheService;
+  }
+
+  async execute(subscriptionCode, day, month, year) {
+    const paymentDate = new Date(year, month - 1, day);
+    // In a real system, you would verify the payment details
+    // For this demonstration, we'll assume a payment means the subscription is active.
+    this.activePlanCacheService.markSubscriptionAsActive(subscriptionCode);
+    console.log(`[ServicoPlanosAtivos] Subscription ${subscriptionCode} marked as active due to payment on ${paymentDate.toISOString().split('T')[0]}`);
+  }
+}
+
+module.exports = ProcessPaymentEventUseCase;
+===== ./servico-gestao2/src/config/database.js =====
+require('dotenv').config(); // Carrega variáveis de ambiente do .env
+const { Sequelize } = require('sequelize');
+
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    dialect: 'postgres', // Ou 'mysql', 'mssql', 'sqlite' etc.
+    logging: false, // Desabilita logs do Sequelize, defina como true para depuração
+  }
+);
+
+// Testa a conexão (opcional, mas recomendado para verificar ao iniciar)
+async function testConnection() {
+  try {
+    await sequelize.authenticate();
+    console.log('Connection to database has been established successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+    process.exit(1); // Sai do processo se a conexão falhar
+  }
+}
+
+testConnection();
+
+module.exports = sequelize;
+===== ./servico-gestao2/src/config/databaseConfig.js =====
+require('dotenv').config();
+
+module.exports = {
+  development: {
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 5432,
+    dialect: 'postgres',
+    logging: false
+  }
+};
+===== ./servico-gestao2/src/database/migrations/20250703193422-create-clients.js =====
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('Clients', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      name: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      email: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      cpf: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      createdAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      updatedAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+    });
+  },
+
+  down: async (queryInterface) => {
+    await queryInterface.dropTable('Clients');
+  }
+};
+===== ./servico-gestao2/src/infrastructure/web/controllers/SubscriptionController.js =====
+class SubscriptionController {
+  constructor(createSubscriptionUseCase, listClientSubscriptionsUseCase, listPlanSubscribersUseCase) {
+    this.createSubscriptionUseCase = createSubscriptionUseCase;
+    this.listClientSubscriptionsUseCase = listClientSubscriptionsUseCase;
+    this.listPlanSubscribersUseCase = listPlanSubscribersUseCase;
+  }
+
+  async createSubscription(req, res) {
+    try {
+      const { codCli, codPlano, startDate } = req.body;
+      if (!codCli || !codPlano || !startDate) {
+        return res.status(400).json({ error: 'Client ID, Plan ID, and Start Date are required.' });
+      }
+      const subscription = await this.createSubscriptionUseCase.execute(codCli, codPlano, startDate);
+      res.status(201).json(subscription);
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      if (error.message.includes('Client not found') || error.message.includes('Plan not found')) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes('Formato de startDate inválido')) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Failed to create subscription.' });
+    }
+  }
+
+  async listClientSubscriptions(req, res) {
+    try {
+      const { codCli } = req.params;
+      const subscriptions = await this.listClientSubscriptionsUseCase.execute(Number(codCli));
+      res.status(200).json(subscriptions);
+    } catch (error) {
+      console.error('Error listing client subscriptions:', error);
+      res.status(500).json({ error: 'Failed to retrieve client subscriptions.' });
+    }
+  }
+
+  async listPlanSubscribers(req, res) {
+    try {
+      const { codPlano } = req.params;
+      const subscribers = await this.listPlanSubscribersUseCase.execute(Number(codPlano));
+      res.status(200).json(subscribers);
+    } catch (error) {
+      console.error('Error listing plan subscribers:', error);
+      res.status(500).json({ error: 'Failed to retrieve plan subscribers.' });
+    }
+  }
+}
+
+module.exports = SubscriptionController;
+===== ./servico-gestao2/src/infrastructure/web/controllers/PaymentController.js =====
+class PaymentController {
+  constructor(registerPaymentUseCase) {
+    this.registerPaymentUseCase = registerPaymentUseCase;
+  }
+
+  async registerPayment(req, res) {
+    try {
+      const { dia, mes, ano, codAss, valorPago } = req.body;
+      const updatedSubscription = await this.registerPaymentUseCase.execute(codAss, dia, mes, ano, valorPago);
+      res.status(200).json({ message: 'Payment registered successfully.', subscription: updatedSubscription });
+    } catch (error) {
+      if (error.message === 'Subscription not found.') {
+        return res.status(404).json({ error: error.message });
+      }
+      res.status(400).json({ error: error.message });
+    }
+  }
+}
+
+module.exports = PaymentController;
+===== ./servico-gestao2/src/infrastructure/web/controllers/ClientController.js =====
+const Client = require('../../../domain/entities/Client');
+
+class ClientController {
+  constructor(listClientsUseCase, createClientUseCase, updateClientUseCase) {
+    this.listClientsUseCase = listClientsUseCase;
+    this.createClientUseCase = createClientUseCase;
+    this.updateClientUseCase = updateClientUseCase;
+  }
+
+  async listClients(req, res) {
+    try {
+      const clients = await this.listClientsUseCase.execute();
+      res.status(200).json(clients);
+    } catch (error) {
+      console.error('Error listing clients:', error);
+      res.status(500).json({ error: 'Failed to retrieve clients.' });
+    }
+  }
+
+  async createClient(req, res) {
+    try {
+      const { name, email, cpf } = req.body;
+      if (!name || !email || !cpf) {
+        return res.status(400).json({ error: 'Name, email, and CPF are required.' });
+      }
+      const client = await this.createClientUseCase.execute(name, email, cpf);
+      res.status(201).json(client);
+    } catch (error) {
+      console.error('Error creating client:', error);
+      if (error.message.includes('unique constraint')) {
+        return res.status(409).json({ error: 'Client with this email or CPF already exists.' });
+      }
+      res.status(500).json({ error: 'Failed to create client.' });
+    }
+  }
+
+  async updateClient(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, email, cpf } = req.body;
+      if (!name || !email || !cpf) {
+        return res.status(400).json({ error: 'Name, email, and CPF are required for update.' });
+      }
+      const updatedClient = await this.updateClientUseCase.execute(Number(id), name, email, cpf);
+      res.status(200).json(updatedClient);
+    } catch (error) {
+      console.error('Error updating client:', error);
+      if (error.message.includes('not found')) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes('unique constraint')) {
+        return res.status(409).json({ error: 'Another client with this email or CPF already exists.' });
+      }
+      res.status(500).json({ error: 'Failed to update client.' });
+    }
+  }
+}
+
+module.exports = ClientController;
+===== ./servico-gestao2/src/infrastructure/web/controllers/PlanController.js =====
+class PlanController {
+  constructor(listPlansUseCase, createPlanUseCase, updatePlanCostUseCase) {
+    this.listPlansUseCase = listPlansUseCase;
+    this.createPlanUseCase = createPlanUseCase;
+    this.updatePlanCostUseCase = updatePlanCostUseCase;
+  }
+
+  // CORREÇÃO: Método renomeado para listPlans
+  async listPlans(req, res) {
+    try {
+      const plans = await this.listPlansUseCase.execute();
+      res.status(200).json(plans);
+    } catch (error) {
+      console.error('Error listing plans:', error.message);
+      res.status(500).json({ error: 'Failed to list plans.' });
+    }
+  }
+
+  // CORREÇÃO: Método renomeado para createPlan
+  async createPlan(req, res) {
+    console.log('Recebido para criar plano:', req.body);
+    try {
+      const { name, description, price } = req.body;
+
+      const priceNumber = parseFloat(price);
+
+      if (!name || !description || isNaN(priceNumber)) {
+        return res.status(400).json({
+          error: 'Bad Request: name, description, and valid price are required.'
+        });
+      }
+
+      const newPlan = await this.createPlanUseCase.execute(
+        name, 
+        description, 
+        priceNumber, 
+      );
+
+      console.log('Plano criado:', newPlan);
+
+      res.status(201).json(newPlan);
+    } catch (error) {
+      console.error('Error creating plan:', error.message);
+      res.status(500).json({
+        error: 'Failed to create plan.',
+        details: error.message
+      });
+    }
+  }
+
+  // CORREÇÃO: Método renomeado para updatePlanCost
+  async updatePlanCost(req, res) {
+    const { id } = req.params;
+    const { newPrice } = req.body;
+    console.log(`Recebido para atualizar custo do plano ${id}:`, req.body);
+    try {
+      if (typeof newPrice !== 'number') {
+        return res.status(400).json({ error: 'Bad Request: newPrice (number) is required.' });
+      }
+      const updatedPlan = await this.updatePlanCostUseCase.execute(id, newPrice);
+      if (!updatedPlan) {
+        return res.status(404).json({ error: 'Plan not found.' });
+      }
+      res.status(200).json(updatedPlan);
+    } catch (error) {
+      console.error('Error updating plan cost:', error.message);
+      res.status(500).json({ error: 'Failed to update plan cost.' });
+    }
+  }
+}
+
+module.exports = PlanController;
+===== ./servico-gestao2/src/infrastructure/web/routes/AppRouter.js =====
+const axios = require('axios');
+const express = require('express');
+
+class AppRouter {
+  constructor(clientController, planController, subscriptionController, paymentController) {
+    this.router = express.Router();
+    this.clientController = clientController;
+    this.planController = planController;
+    this.subscriptionController = subscriptionController;
+    this.paymentController = paymentController; // Adicionado
+    this._setupRoutes();
+  }
+
+  _setupRoutes() {
+    // Client routes
+    this.router.get('/gerenciaplanos/clients', this.clientController.listClients.bind(this.clientController));
+    this.router.post('/gerenciaplanos/clients', this.clientController.createClient.bind(this.clientController));
+    this.router.put('/gerenciaplanos/clients/:id', this.clientController.updateClient.bind(this.clientController));
+
+    // Plan routes
+    this.router.get('/gerenciaplanos/plans', this.planController.listPlans.bind(this.planController));
+    this.router.post('/gerenciaplanos/plans', this.planController.createPlan.bind(this.planController));
+    this.router.put('/gerenciaplanos/plans/:id/cost', this.planController.updatePlanCost.bind(this.planController));
+
+    // Subscription routes
+    this.router.post('/gerenciaplanos/subscriptions', this.subscriptionController.createSubscription.bind(this.subscriptionController));
+    this.router.get('/gerenciaplanos/subscriptions/client/:codCli', this.subscriptionController.listClientSubscriptions.bind(this.subscriptionController));
+    this.router.get('/gerenciaplanos/subscriptions/plan/:codPlano', this.subscriptionController.listPlanSubscribers.bind(this.subscriptionController));
+    
+    // Payment route (NOVA)
+    this.router.post('/gerenciaplanos/pagamentos', this.paymentController.registerPayment.bind(this.paymentController));
+  }
+
+  getRouter() {
+    return this.router;
+  }
+}
+
+module.exports = AppRouter;
+===== ./servico-gestao2/src/infrastructure/database/repositories/PaymentRepositoryPg.js =====
+const IPaymentRepository = require('../../../domain/repositories/IPaymentRepository');
+const PaymentModel = require('../models/PaymentModel');
+const Payment = require('../../../domain/entities/Payment');
+
+class PaymentRepositoryPg extends IPaymentRepository {
+  async save(payment) {
+    const createdPayment = await PaymentModel.create(payment);
+    return new Payment(createdPayment.id, createdPayment.subscriptionId, parseFloat(createdPayment.amount), createdPayment.paymentDate);
+  }
+}
+
+module.exports = PaymentRepositoryPg;
+===== ./servico-gestao2/src/infrastructure/database/repositories/ClientRepositoryPg.js =====
+// File: servico-gestao/src/infrastructure/database/repositories/ClientRepositoryPg.js
+const ClientModel = require('../models/ClientModel');
+const Client = require('../../../domain/entities/Client'); // Assumindo que você tem uma entidade de domínio Client
+
+class ClientRepositoryPg {
+  constructor() {
+    // O sequelize gerencia a conexão, não precisamos passar 'db' aqui diretamente
+  }
+
+  async findById(codCli) {
+    const clientData = await ClientModel.findByPk(codCli);
+    if (!clientData) {
+      return null;
+    }
+    // Converte o modelo Sequelize para sua entidade de domínio
+    return new Client(clientData.codCli, clientData.name, clientData.email, clientData.cpf);
+  }
+
+  async findAll() {
+    const clientsData = await ClientModel.findAll();
+    // Converte os modelos Sequelize para suas entidades de domínio
+    return clientsData.map(clientData => new Client(clientData.codCli, clientData.name, clientData.email, clientData.cpf));
+  }
+
+  async create(client) {
+    const newClient = await ClientModel.create({
+      name: client.name,
+      email: client.email,
+      cpf: client.cpf // Garante que o CPF seja salvo
+    });
+    return new Client(
+      newClient.codCli,
+      newClient.name,
+      newClient.email,
+      newClient.cpf // Inclui CPF na entidade retornada
+    );
+  }
+
+  async update(client) {
+    const [updatedRows] = await ClientModel.update({
+      name: client.name,
+      email: client.email,
+      cpf: client.cpf
+    }, {
+      where: { codCli: client.codCli }
+    });
+    if (updatedRows === 0) {
+      throw new Error(`Client with codCli ${client.codCli} not found or no changes made.`);
+    }
+    return client; // Retorna a entidade atualizada
+  }
+
+  async delete(codCli) {
+    const deletedRows = await ClientModel.destroy({
+      where: { codCli: codCli }
+    });
+    return deletedRows > 0; // Retorna true se algo foi deletado
+  }
+}
+
+module.exports = ClientRepositoryPg;
+===== ./servico-gestao2/src/infrastructure/database/repositories/PlanRepositoryPg.js =====
+const IPlanRepository = require('../../../domain/repositories/IPlanRepository');
+const PlanModel = require('../models/PlanModel');
+const Plan = require('../../../domain/entities/Plan');
+
+class PlanRepositoryPg extends IPlanRepository {
+
+  async create(plan) {
+    try {
+      console.log('Creating plan:', plan);
+      const createdPlan = await PlanModel.create({
+        name: plan.name,
+        description: plan.description,
+        monthlyCost: plan.monthlyCost.toFixed(2)
+      });
+
+      return new Plan(
+        createdPlan.id,
+        createdPlan.name,
+        createdPlan.description,
+        parseFloat(createdPlan.monthlyCost)
+      );
+    } catch (error) {
+      console.error('Error creating plan:', error);
+      throw new Error('Failed to create plan. Please try again later.');
+    }
+  }
+  async save(plan) {
+    const createdPlan = await PlanModel.create(plan);
+    return new Plan(createdPlan.id, createdPlan.name, createdPlan.description, parseFloat(createdPlan.monthlyCost));
+  }
+
+  async findById(id) {
+    const planData = await PlanModel.findByPk(id);
+    if (!planData) {
+      return null;
+    }
+    return new Plan(planData.id, planData.name, planData.description, parseFloat(planData.monthlyCost));
+  }
+
+  async findAll() {
+    const plansData = await PlanModel.findAll();
+    return plansData.map(data => new Plan(data.id, data.name, data.description, parseFloat(data.monthlyCost)));
+  }
+
+  async update(plan) {
+    const [updatedRows] = await PlanModel.update(
+      { name: plan.name, description: plan.description, monthlyCost: plan.monthlyCost },
+      { where: { id: plan.id } }
+    );
+    if (updatedRows === 0) {
+      return null;
+    }
+    return plan;
+  }
+
+}
+
+module.exports = PlanRepositoryPg;
+===== ./servico-gestao2/src/infrastructure/database/repositories/SubscriptionRepositoryPg.js =====
+const SubscriptionModel = require('../models/SubscriptionModel');
+const Subscription = require('../../../domain/entities/Subscription');
+
+class SubscriptionRepositoryPg {
+  async findById(id) {
+    const data = await SubscriptionModel.findByPk(id);
+    if (!data) return null;
+    
+    return new Subscription(
+      data.codAss,
+      data.codCli,
+      data.codPlano,
+      data.startDate,
+      data.endDate,
+      data.status,
+      data.cancellationDate,
+      data.nextPaymentDate
+    );
+  }
+
+  async save(subscription) {
+    const [data, created] = await SubscriptionModel.upsert({
+      codAss: subscription.codAss,
+      codCli: subscription.codCli,
+      codPlano: subscription.codPlano,
+      startDate: subscription.startDate,
+      endDate: subscription.endDate,
+      status: subscription.status,
+      cancellationDate: subscription.cancellationDate,
+      nextPaymentDate: subscription.nextPaymentDate
+    });
+
+    return new Subscription(
+      data.codAss,
+      data.codCli,
+      data.codPlano,
+      data.startDate,
+      data.endDate,
+      data.status,
+      data.cancellationDate,
+      data.nextPaymentDate
+    );
+  }
+
+  async findByCodPlano(codPlano) {
+    const data = await SubscriptionModel.findAll({ where: { codPlano } });
+    return data.map(d => new Subscription(
+      d.codAss,
+      d.codCli,
+      d.codPlano,
+      d.startDate,
+      d.endDate,
+      d.status,
+      d.cancellationDate,
+      d.nextPaymentDate
+    ));
+  }
+
+  async findByCodCli(codCli) {
+    const data = await SubscriptionModel.findAll({ where: { codCli } });
+    return data.map(d => new Subscription(
+      d.codAss,
+      d.codCli,
+      d.codPlano,
+      d.startDate,
+      d.endDate,
+      d.status,
+      d.cancellationDate,
+      d.nextPaymentDate
+    ));
+  }
+}
+
+module.exports = SubscriptionRepositoryPg;
+===== ./servico-gestao2/src/infrastructure/database/models/PlanModel.js =====
+const { DataTypes } = require('sequelize');
+const sequelize = require('../../../config/database');
+
+const PlanModel = sequelize.define('Plan', {
+  codPlano: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+    field: 'codPlano'
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  monthlyCost: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    field: 'monthlyCost',
+  },
+  maxClients: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  }
+}, {
+  tableName: 'plans',
+  timestamps: false,
+});
+
+module.exports = PlanModel;
+
+===== ./servico-gestao2/src/infrastructure/database/models/ClientModel.js =====
+const { DataTypes } = require('sequelize');
+const sequelize = require('../../../config/database');
+
+const ClientModel = sequelize.define('Client', {
+  codCli: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+    field: 'codCli' // Garante que o nome da coluna no banco é 'codCli'
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  cpf: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  }
+}, {
+  tableName: 'clients', // Nome da tabela no banco de dados
+  timestamps: false // Se suas tabelas não tiverem 'createdAt' e 'updatedAt'
+});
+
+module.exports = ClientModel;
+===== ./servico-gestao2/src/infrastructure/database/models/SubscriptionModel.js =====
+const { DataTypes } = require('sequelize');
+const sequelize = require('../../../config/database.js'); 
+const ClientModel = require('./ClientModel');
+const PlanModel = require('./PlanModel');
+
+const SubscriptionModel = sequelize.define('Subscription', {
+  codAss: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+    field: 'codAss'
+  },
+  codCli: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: ClientModel,
+      key: 'codCli',
+    },
+  },
+  codPlano: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: PlanModel,
+      key: 'codPlano',
+    },
+  },
+  startDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: false,
+  },
+  endDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
+  status: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'active',
+  },
+  cancellationDate: { // CAMPO ADICIONADO
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
+  nextPaymentDate: { // CAMPO ADICIONADO
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
+}, {
+  tableName: 'subscriptions',
+  timestamps: false,
+});
+
+SubscriptionModel.belongsTo(ClientModel, { foreignKey: 'codCli' });
+SubscriptionModel.belongsTo(PlanModel, { foreignKey: 'codPlano' });
+
+ClientModel.hasMany(SubscriptionModel, { foreignKey: 'codCli' });
+PlanModel.hasMany(SubscriptionModel, { foreignKey: 'codPlano' });
+
+module.exports = SubscriptionModel;
+===== ./servico-gestao2/src/infrastructure/database/models/PaymentModel.js =====
+const { DataTypes } = require('sequelize');
+const sequelize = require('../../../config/database.js'); 
+const SubscriptionModel = require('./SubscriptionModel');
+
+const PaymentModel = sequelize.define('Payment', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  subscriptionId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: SubscriptionModel,
+      key: 'codAss',
+    },
+  },
+  amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+  },
+  paymentDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: false,
+  },
+}, {
+  tableName: 'payments',
+  timestamps: false,
+});
+
+PaymentModel.belongsTo(SubscriptionModel, {
+  foreignKey: 'subscriptionId',
+  targetKey: 'codAss',
+  as: 'subscription'
+});
+
+module.exports = PaymentModel;
+===== ./servico-gestao2/src/infrastructure/database/Database.js =====
+// File: servico-gestao/src/infra/database/Database.js
+const sqlite3 = require('sqlite3').verbose();
+const { open } = require('sqlite');
+
+class Database {
+  constructor() {
+    this.db = null;
+  }
+
+  async initialize() {
+    this.db = await open({
+      filename: './database.sqlite', // Path from the project root (servico-gestao)
+      driver: sqlite3.Database
+    });
+    await this._runMigrations();
+    console.log('Database initialized and migrations run.');
+    return this.db;
+  }
+
+  async _runMigrations() {
+    await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS clients (
+        codCli INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        cpf TEXT NOT NULL UNIQUE
+      );
+
+      CREATE TABLE IF NOT EXISTS plans (
+        codPlano INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        cost REAL NOT NULL,
+        maxClients INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        codAss INTEGER PRIMARY KEY AUTOINCREMENT,
+        codCli INTEGER NOT NULL,
+        codPlano INTEGER NOT NULL,
+        startDate TEXT NOT NULL,
+        endDate TEXT,
+        status TEXT NOT NULL,
+        cancellationDate TEXT,
+        nextPaymentDate TEXT,
+        FOREIGN KEY (codCli) REFERENCES clients(codCli),
+        FOREIGN KEY (codPlano) REFERENCES plans(codPlano)
+      );
+    `);
+  }
+}
+
+module.exports = new Database();
+===== ./servico-gestao2/src/infrastructure/services/SubscriptionDomainService.js =====
+const ISubscriptionDomainService = require('../../domain/services/ISubscriptionDomainService');
+
+class SubscriptionDomainService extends ISubscriptionDomainService {
+  calculateNextPaymentDate(lastPaymentDate, paymentFrequencyInMonths) {
+    if (!(lastPaymentDate instanceof Date)) {
+      lastPaymentDate = new Date(lastPaymentDate);
+    }
+    const nextDate = new Date(lastPaymentDate);
+    nextDate.setMonth(nextDate.getMonth() + paymentFrequencyInMonths);
+    return nextDate;
+  }
+
+  isActive(subscription) {
+    if (!subscription) return false;
+    return subscription.status === 'active' &&
+           (!subscription.endDate || new Date(subscription.endDate) > new Date()) &&
+           (!subscription.nextPaymentDate || new Date(subscription.nextPaymentDate) >= new Date());
+  }
+}
+
+module.exports = SubscriptionDomainService;
+===== ./servico-gestao2/src/main.js =====
+const Server = require('./server');
+const AppRouter = require('./infrastructure/web/routes/AppRouter');
+const sequelize = require('./config/database');
+
+// Repositories
+const ClientRepositoryPg = require('./infrastructure/database/repositories/ClientRepositoryPg');
+const PlanRepositoryPg = require('./infrastructure/database/repositories/PlanRepositoryPg');
+const SubscriptionRepositoryPg = require('./infrastructure/database/repositories/SubscriptionRepositoryPg');
+const PaymentRepositoryPg = require('./infrastructure/database/repositories/PaymentRepositoryPg');
+
+// Domain Services
+const SubscriptionDomainService = require('./infrastructure/services/SubscriptionDomainService');
+
+// Use Cases
+const CreateSubscriptionUseCase = require('./application/use-cases/CreateSubscriptionUseCase');
+const ListClientsUseCase = require('./application/use-cases/ListClientsUseCase');
+const ListPlansUseCase = require('./application/use-cases/ListPlansUseCase');
+const UpdatePlanCostUseCase = require('./application/use-cases/UpdatePlanCostUseCase');
+const ListClientSubscriptionsUseCase = require('./application/use-cases/ListClientSubscriptionsUseCase');
+const ListPlanSubscribersUseCase = require('./application/use-cases/ListPlanSubscribersUseCase');
+const CreateClientUseCase = require('./application/use-cases/CreateClientUseCase');
+const UpdateClientUseCase = require('./application/use-cases/UpdateClientUseCase');
+const CreatePlanUseCase = require('./application/use-cases/CreatePlanUseCase');
+const RegisterPaymentUseCase = require('./application/use-cases/RegisterPaymentUseCase'); // Adicionado
+
+// Controllers
+const ClientController = require('./infrastructure/web/controllers/ClientController');
+const PlanController = require('./infrastructure/web/controllers/PlanController');
+const SubscriptionController = require('./infrastructure/web/controllers/SubscriptionController');
+const PaymentController = require('./infrastructure/web/controllers/PaymentController'); // Adicionado
+
+// Message Broker and Axios
+const MessageBrokerService = require('./application/services/MessageBrokerService');
+const axios = require('axios');
+
+async function main() {
+  try {
+    await sequelize.sync({ force: true }); // Forçar criação das tabelas
+    console.log('Database and tables synchronized with Sequelize.');
+  } catch (error) {
+    console.error('Unable to synchronize database with Sequelize:', error);
+    process.exit(1);
+  }
+
+  // Initialize Repositories
+  const clientRepository = new ClientRepositoryPg();
+  const planRepository = new PlanRepositoryPg();
+  const subscriptionRepository = new SubscriptionRepositoryPg();
+  const paymentRepository = new PaymentRepositoryPg(); // Adicionado
+
+  // Initialize Domain Services
+  const subscriptionDomainService = new SubscriptionDomainService();
+
+  // Initialize Use Cases
+  const createSubscriptionUseCase = new CreateSubscriptionUseCase(
+    clientRepository,
+    planRepository,
+    subscriptionRepository,
+    subscriptionDomainService
+  );
+  const listClientsUseCase = new ListClientsUseCase(clientRepository);
+  const listPlansUseCase = new ListPlansUseCase(planRepository);
+  const updatePlanCostUseCase = new UpdatePlanCostUseCase(planRepository);
+  const listClientSubscriptionsUseCase = new ListClientSubscriptionsUseCase(subscriptionRepository);
+  const listPlanSubscribersUseCase = new ListPlanSubscribersUseCase(subscriptionRepository);
+  const createClientUseCase = new CreateClientUseCase(clientRepository);
+  const updateClientUseCase = new UpdateClientUseCase(clientRepository);
+  const createPlanUseCase = new CreatePlanUseCase(planRepository);
+  const registerPaymentUseCase = new RegisterPaymentUseCase( // Adicionado
+    subscriptionRepository,
+    paymentRepository
+  );
+
+  // Controllers
+  const clientController = new ClientController(listClientsUseCase, createClientUseCase, updateClientUseCase);
+  const planController = new PlanController(listPlansUseCase, createPlanUseCase, updatePlanCostUseCase);
+  const subscriptionController = new SubscriptionController(
+    createSubscriptionUseCase,
+    listClientSubscriptionsUseCase,
+    listPlanSubscribersUseCase
+  );
+  const paymentController = new PaymentController(registerPaymentUseCase); // Adicionado
+
+  // Setup main router
+  const appRouter = new AppRouter(
+    clientController,
+    planController,
+    subscriptionController,
+    paymentController // Adicionado
+  );
+
+  // Microservice integration routes
+  appRouter.getRouter().post('/registrarpagamento', async (req, res) => {
+    try {
+      const response = await axios.post('http://localhost:3001/registrarpagamento', req.body);
+      MessageBrokerService.publish('payment_event', req.body);
+      res.status(response.status).json(response.data);
+    } catch (error) {
+      console.error('Error registering payment:', error.message);
+      if (error.response) {
+        return res.status(error.response.status).json(error.response.data);
+      }
+      res.status(500).json({ error: 'Failed to register payment.' });
+    }
+  });
+
+  appRouter.getRouter().get('/planosativos/:codass', async (req, res) => {
+    try {
+      const { codass } = req.params;
+      const response = await axios.get(`http://localhost:3002/active-plans/${codass}`);
+      res.status(response.status).json(response.data);
+    } catch (error) {
+      console.error('Error checking active plan:', error.message);
+      if (error.response) {
+        return res.status(error.response.status).json(error.response.data);
+      }
+      res.status(500).json({ error: 'Failed to check active plan.' });
+    }
+  });
+
+  const server = new Server(appRouter);
+  server.start();
+}
+
+main();
+===== ./servico-gestao2/src/domain/repositories/IPaymentRepository.js =====
+class IPaymentRepository {
+  async save(payment) {
+    throw new Error('Method "save" not implemented.');
+  }
+}
+
+module.exports = IPaymentRepository;
+===== ./servico-gestao2/src/domain/repositories/IClientRepository.js =====
+class IClientRepository {
+  async save(client) {
+    throw new Error('Method "save" not implemented.');
+  }
+  async findById(id) {
+    throw new Error('Method "findById" not implemented.');
+  }
+  async findAll() {
+    throw new Error('Method "findAll" not implemented.');
+  }
+}
+
+module.exports = IClientRepository;
+===== ./servico-gestao2/src/domain/repositories/IPlanRepository.js =====
+class IPlanRepository {
+  async save(plan) {
+    throw new Error('Method "save" not implemented.');
+  }
+  async findById(id) {
+    throw new Error('Method "findById" not implemented.');
+  }
+  async findAll() {
+    throw new Error('Method "findAll" not implemented.');
+  }
+  async update(plan) {
+    throw new Error('Method "update" not implemented.');
+  }
+}
+
+module.exports = IPlanRepository;
+===== ./servico-gestao2/src/domain/repositories/ISubscriptionRepository.js =====
+class ISubscriptionRepository {
+  async save(subscription) {
+    throw new Error('Method "save" not implemented.');
+  }
+  async findById(id) {
+    throw new Error('Method "findById" not implemented.');
+  }
+  async findByCodCli(codCli) {
+    throw new Error('Method "findBycodCli" not implemented.');
+  }
+  async findByCodPlano(codPlano) {
+    throw new Error('Method "findBycodPlano" not implemented.');
+  }
+  async update(subscription) {
+    throw new Error('Method "update" not implemented.');
+  }
+}
+
+module.exports = ISubscriptionRepository;
+===== ./servico-gestao2/src/domain/entities/Client.js =====
+class Client {
+  constructor(id, name, email, cpf) { // Adiciona parâmetro cpf
+    if (!name || name.trim() === '') {
+      throw new Error('Nome do cliente não pode estar vazio.');
+    }
+    if (!email || !this.isValidEmail(email)) {
+      throw new Error('E-mail do cliente inválido.');
+    }
+    if (!cpf || !this.isValidCPF(cpf)) { // Adiciona validação de CPF
+      throw new Error('CPF do cliente inválido.');
+    }
+
+    this.id = id;
+    this.name = name;
+    this.email = email;
+    this.cpf = cpf; // Adiciona propriedade cpf
+  }
+
+  isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  // Adiciona método de validação de CPF
+  isValidCPF(cpf) {
+    return /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cpf); // Validação básica de formato de CPF
+  }
+}
+
+module.exports = Client;
+===== ./servico-gestao2/src/domain/entities/Plan.js =====
+class Plan {
+  constructor(id, name, description, monthlyCost) {
+    if (!name || name.trim() === '') {
+      throw new Error('Plan name cannot be empty.');
+    }
+    if (monthlyCost === undefined || monthlyCost < 0) {
+      throw new Error('Monthly cost must be a non-negative number.');
+    }
+
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.monthlyCost = monthlyCost;
+  }
+
+  updateCost(newCost) {
+    if (newCost === undefined || newCost < 0) {
+      throw new Error('New monthly cost must be a non-negative number.');
+    }
+    this.monthlyCost = newCost;
+  }
+}
+
+module.exports = Plan;
+===== ./servico-gestao2/src/domain/entities/Subscription.js =====
+class Subscription {
+  constructor(codAss, codCli, codPlano, startDate, endDate, status, cancellationDate, nextPaymentDate) {
+    this.codAss = codAss;
+    this.codCli = codCli;
+    this.codPlano = codPlano;
+    this.startDate = startDate;
+    this.endDate = endDate;
+    this.status = status;
+    this.cancellationDate = cancellationDate;
+    this.nextPaymentDate = nextPaymentDate;
+    this.lastPaymentDate = null; // Adicionado
+  }
+
+  // Método adicionado
+  markAsPaid(paymentDate) {
+    this.lastPaymentDate = paymentDate;
+    // Cálculo da próxima data de pagamento
+    const nextDate = new Date(paymentDate);
+    nextDate.setMonth(nextDate.getMonth() + 1);
+    this.nextPaymentDate = nextDate;
+  }
+}
+
+module.exports = Subscription;
+===== ./servico-gestao2/src/domain/entities/Payment.js =====
+class Payment {
+  constructor(id, subscriptionId, amount, paymentDate) {
+    if (!subscriptionId) {
+      throw new Error('Payment must be associated with a subscription.');
+    }
+    if (amount === undefined || amount <= 0) {
+      throw new Error('Payment amount must be a positive number.');
+    }
+    // if (!(paymentDate instanceof Date) || isNaN(paymentDate.getTime())) {
+    //   throw new Error('Payment date must be a valid Date object.');
+    // }
+
+    this.id = id;
+    this.subscriptionId = subscriptionId;
+    this.amount = amount;
+    this.paymentDate = paymentDate;
+  }
+}
+
+module.exports = Payment;
+===== ./servico-gestao2/src/domain/services/ISubscriptionDomainService.js =====
+class ISubscriptionDomainService {
+  calculateNextPaymentDate(lastPaymentDate, paymentFrequencyInMonths) {
+    throw new Error('Method "calculateNextPaymentDate" not implemented.');
+  }
+
+  isActive(subscription) {
+    throw new Error('Method "isActive" not implemented.');
+  }
+}
+
+module.exports = ISubscriptionDomainService;
+===== ./servico-gestao2/src/server.js =====
+// File: servico-gestao/src/server.js
+const express = require('express');
+const cors = require('cors');
+
+class Server {
+  constructor(appRouter) {
+    this.app = express();
+    this.port = process.env.PORT || 3000;
+    this.appRouter = appRouter;
+    this._setupMiddleware();
+    this._setupRoutes();
+  }
+
+  _setupMiddleware() {
+    this.app.use(cors());
+    this.app.use(express.json());
+  }
+
+  _setupRoutes() {
+    this.app.use('/', this.appRouter.getRouter());
+  }
+
+  start() {
+    this.app.listen(this.port, () => {
+      console.log(`Server running on port ${this.port}`);
+    });
+  }
+}
+
+module.exports = Server;
+===== ./servico-gestao2/src/application/services/MessageBrokerService.js =====
+// File: servico-gestao/src/application/services/MessageBrokerService.js
+// This is a simplified in-memory message broker for demonstration purposes.
+// In a real-world scenario, you would use a dedicated message broker like RabbitMQ or Kafka.
+
+class MessageBrokerService {
+  constructor() {
+    this.subscribers = {};
+  }
+
+  subscribe(topic, callback) {
+    if (!this.subscribers[topic]) {
+      this.subscribers[topic] = [];
+    }
+    this.subscribers[topic].push(callback);
+    console.log(`[MessageBroker] Subscribed to topic: ${topic}`);
+  }
+
+  publish(topic, data) {
+    if (this.subscribers[topic]) {
+      this.subscribers[topic].forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(`[MessageBroker] Error processing message for topic ${topic}:`, error);
+        }
+      });
+    }
+    console.log(`[MessageBroker] Published to topic: ${topic} with data:`, data);
+  }
+}
+
+// Export a singleton instance
+module.exports = new MessageBrokerService();
+===== ./servico-gestao2/src/application/use-cases/UpdatePlanCostUseCase.js =====
+// File: servico-gestao/src/application/use-cases/UpdatePlanCostUseCase.js
+class UpdatePlanCostUseCase {
+  constructor(planRepository) {
+    this.planRepository = planRepository;
+  }
+
+  async execute(codPlano, newCost) {
+    if (newCost <= 0) {
+      throw new Error('O custo do plano deve ser um valor positivo.');
+    }
+
+    const plan = await this.planRepository.findById(codPlano);
+    if (!plan) {
+      throw new Error('Plano não encontrado.');
+    }
+
+    plan.cost = newCost;
+    await this.planRepository.update(plan);
+
+    return plan;
+  }
+}
+
+module.exports = UpdatePlanCostUseCase;
+===== ./servico-gestao2/src/application/use-cases/ListClientsUseCase.js =====
+class ListClientsUseCase {
+  constructor(clientRepository) {
+    this.clientRepository = clientRepository;
+  }
+
+  async execute() {
+    return this.clientRepository.findAll();
+  }
+}
+
+module.exports = ListClientsUseCase;
+===== ./servico-gestao2/src/application/use-cases/ListPlanSubscribersUseCase.js =====
+class ListPlanSubscribersUseCase {
+  constructor(subscriptionRepository) {
+    this.subscriptionRepository = subscriptionRepository;
+  }
+
+  async execute(codPlano) {
+    return this.subscriptionRepository.findByCodPlano(codPlano);
+  }
+}
+
+module.exports = ListPlanSubscribersUseCase;
+===== ./servico-gestao2/src/application/use-cases/CreatePlanUseCase.js =====
+const Plan = require('../../domain/entities/Plan');
+
+class CreatePlanUseCase {
+  constructor(planRepository) {
+    this.planRepository = planRepository;
+  }
+
+  async execute(name, description, monthlyCost, maxClients = null) {
+    if (monthlyCost < 0) {
+      throw new Error('Plan cost cannot be negative.');
+    }
+
+    if (maxClients !== null && maxClients < 0) {
+      throw new Error('Max clients cannot be negative.');
+    }
+
+    const newPlan = new Plan(
+      null,
+      name,
+      description,
+      monthlyCost,
+    );
+
+    const createdPlan = await this.planRepository.create(newPlan);
+    return createdPlan;
+  }
+}
+
+module.exports = CreatePlanUseCase;
+===== ./servico-gestao2/src/application/use-cases/UpdateClientUseCase.js =====
+// File: servico-gestao/src/application/use-cases/UpdateClientUseCase.js
+const Client = require('../../domain/entities/Client'); // Importa a entidade Client
+
+class UpdateClientUseCase {
+  constructor(clientRepository) {
+    this.clientRepository = clientRepository;
+  }
+
+  async execute(codCli, name, email, cpf) {
+    const existingClient = await this.clientRepository.findById(codCli);
+    if (!existingClient) {
+      throw new Error(`Client with ID ${codCli} not found.`);
+    }
+
+    // Atualiza a entidade existente
+    existingClient.name = name;
+    existingClient.email = email;
+    existingClient.cpf = cpf;
+
+    return await this.clientRepository.update(existingClient);
+  }
+}
+
+module.exports = UpdateClientUseCase;
+===== ./servico-gestao2/src/application/use-cases/RegisterPlanUseCase.js =====
+const Plan = require('../../domain/entities/Plan');
+
+class RegisterPlanUseCase {
+  constructor(planRepository) {
+    this.planRepository = planRepository;
+  }
+
+  async execute(name, description, monthlyCost) {
+    const plan = new Plan(null, name, description, monthlyCost);
+    return this.planRepository.save(plan);
+  }
+}
+
+module.exports = RegisterPlanUseCase;
+===== ./servico-gestao2/src/application/use-cases/CreateClientUseCase.js =====
+const Client = require('../../domain/entities/Client');
+
+class CreateClientUseCase {
+  constructor(clientRepository) {
+    this.clientRepository = clientRepository;
+  }
+
+async execute(name, email, cpf) {
+  const newClient = new Client(null, name, email, cpf); // Passa o cpf
+  return await this.clientRepository.create(newClient);
+}
+}
+
+module.exports = CreateClientUseCase;
+===== ./servico-gestao2/src/application/use-cases/CreateSubscriptionUseCase.js =====
+const Subscription = require('../../domain/entities/Subscription');
+const axios = require('axios');
+
+class CreateSubscriptionUseCase {
+  constructor(clientRepository, planRepository, subscriptionRepository, subscriptionDomainService) {
+    this.clientRepository = clientRepository;
+    this.planRepository = planRepository;
+    this.subscriptionRepository = subscriptionRepository;
+    this.subscriptionDomainService = subscriptionDomainService;
+  }
+
+  async execute(codCli, codPlano, startDate) {
+    const client = await this.clientRepository.findById(codCli);
+    if (!client) {
+      throw new Error('Client not found.');
+    }
+
+    const plan = await this.planRepository.findById(codPlano);
+    if (!plan) {
+      throw new Error('Plan not found.');
+    }
+
+    const parsedStartDate = new Date(startDate);
+    if (isNaN(parsedStartDate.getTime())) {
+        throw new Error('Formato de startDate inválido. Por favor, forneça uma data no formato AAAA-MM-DD.');
+    }
+
+    parsedStartDate.setHours(0, 0, 0, 0);
+
+    const initialNextPaymentDate = this.subscriptionDomainService.calculateNextPaymentDate(parsedStartDate, 1);
+
+    const subscription = new Subscription(
+      null,
+      codCli,
+      codPlano,
+      parsedStartDate,
+      null,
+      'active',
+      null,
+      initialNextPaymentDate
+    );
+
+    const createdSubscription = await this.subscriptionRepository.save(subscription);
+
+    try {
+      await axios.post('http://servico-planos-ativos:3002/active-plans/add', {
+        subscriptionCode: createdSubscription.id
+      });
+      console.log(`Notified ServicoPlanosAtivos about subscription: ${createdSubscription.id}`);
+    } catch (error) {
+      console.error(`Failed to notify ServicoPlanosAtivos: ${error.message}`);
+    }
+
+    return createdSubscription;
+  }
+}
+
+module.exports = CreateSubscriptionUseCase;
+===== ./servico-gestao2/src/application/use-cases/ListClientSubscriptionsUseCase.js =====
+class ListClientSubscriptionsUseCase {
+  constructor(subscriptionRepository) {
+    this.subscriptionRepository = subscriptionRepository;
+  }
+
+  async execute(codCli) {
+    return this.subscriptionRepository.findBycodCli(codCli);
+  }
+}
+
+module.exports = ListClientSubscriptionsUseCase;
+===== ./servico-gestao2/src/application/use-cases/RegisterPaymentUseCase.js =====
+const axios = require('axios'); // Adicionado
+const Payment = require('../../domain/entities/Payment');
+
+class RegisterPaymentUseCase {
+  constructor(subscriptionRepository, paymentRepository) {
+    this.subscriptionRepository = subscriptionRepository;
+    this.paymentRepository = paymentRepository;
+  }
+
+  async execute(codAss, dia, mes, ano, valorPago) {
+    const subscription = await this.subscriptionRepository.findById(codAss);
+    if (!subscription) {
+      throw new Error('Subscription not found.');
+    }
+
+    const paymentDate = new Date(ano, mes - 1, dia);
+    if (isNaN(paymentDate.getTime())) {
+      throw new Error(`Invalid payment date: ${ano}-${mes}-${dia}`);
+    }
+    
+    const payment = new Payment(
+      null,
+      codAss,
+      valorPago,
+      paymentDate
+    );
+    
+    await this.paymentRepository.save(payment);
+    
+    // Atualizar a assinatura se necessário
+    subscription.lastPaymentDate = paymentDate;
+    await this.subscriptionRepository.save(subscription);
+
+    // NOTIFICAR SERVIÇO DE PLANOS ATIVOS
+    try {
+      await axios.post('http://localhost:3002/active-plans/add', {
+        subscriptionCode: codAss
+      });
+      console.log(`[ServicoGestao] Notified ServicoPlanosAtivos about payment for subscription ${codAss}`);
+    } catch (error) {
+      console.error(`[ServicoGestao] Failed to notify ServicoPlanosAtivos: ${error.message}`);
+    }
+
+    return subscription;
+  }
+}
+
+module.exports = RegisterPaymentUseCase;
+
+===== ./servico-gestao2/src/application/use-cases/RegisterClientUseCase.js =====
+const Client = require('../../domain/entities/Client');
+
+class RegisterClientUseCase {
+  constructor(clientRepository) {
+    this.clientRepository = clientRepository;
+  }
+
+  async execute(name, email) {
+    const client = new Client(null, name, email);
+    return this.clientRepository.save(client);
+  }
+}
+
+module.exports = RegisterClientUseCase;
+===== ./servico-gestao2/src/application/use-cases/ListPlansUseCase.js =====
+class ListPlansUseCase {
+  constructor(planRepository) {
+    this.planRepository = planRepository;
+  }
+
+  async execute() {
+    return this.planRepository.findAll();
+  }
+}
+
+module.exports = ListPlansUseCase;

@@ -107,7 +107,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\r\n \t\"name\": \"Plano Standard\",\r\n \t\"description\": \"Um plano para o dia a dia\",\r\n \t\"monthlyCost\": 49.99\r\n}",
+                            "raw": "{\r\n \t\"name\": \"Plano Standard\",\r\n \t\"description\": \"Um plano para o dia a dia\",\r\n \t\"price\": 49.99\r\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -175,7 +175,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\r\n \t\"newMonthlyCost\": 0.01\r\n}",
+                            "raw": "{\r\n \t\"newprice\": 0.01\r\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -194,7 +194,7 @@
                                 "1"
                             ]
                         },
-                        "description": "### PATCH /gerenciaplanos/planos/:idPlano\n\nO endpoint é usado para atualizar os detalhes de um plano específico. Neste exemplo, o \"1\" se refere ao ID do plano que se deseja atualizar.\n\n### Request Body\n\nA solicitação deve incluir os seguintes parâmetros no corpo bruto da solicitação:\n\n- `newMonthlyCost` (número, obrigatório): O custo atualizado do plano."
+                        "description": "### PATCH /gerenciaplanos/planos/:idPlano\n\nO endpoint é usado para atualizar os detalhes de um plano específico. Neste exemplo, o \"1\" se refere ao ID do plano que se deseja atualizar.\n\n### Request Body\n\nA solicitação deve incluir os seguintes parâmetros no corpo bruto da solicitação:\n\n- `newprice` (número, obrigatório): O custo atualizado do plano."
                     },
                     "response": []
                 },

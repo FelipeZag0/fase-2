@@ -1,4 +1,3 @@
-// File: servico-gestao/src/config/database.js
 require('dotenv').config(); // Carrega variáveis de ambiente do .env
 const { Sequelize } = require('sequelize');
 

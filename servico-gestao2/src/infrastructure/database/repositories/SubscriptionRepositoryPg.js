@@ -1,103 +1,74 @@
-// File: servico-gestao/src/infra/repositories/SubscriptionRepository.js
+const SubscriptionModel = require('../models/SubscriptionModel');
 const Subscription = require('../../../domain/entities/Subscription');
 
-class SubscriptionRepository {
-  constructor(db) {
-    this.db = db;
-  }
-
-  async save(subscription) {
-    if (subscription.id) {
-      // Update existing subscription
-      await this.db.run(
-        `UPDATE subscriptions SET clientCode = ?, planCode = ?, startDate = ?, cancellationDate = ?, status = ?, reasonForCancellation = ?, nextPaymentDate = ? WHERE id = ?`,
-        [
-          subscription.clientCode,
-          subscription.planCode,
-          subscription.startDate.toISOString(),
-          subscription.cancellationDate ? subscription.cancellationDate.toISOString() : null,
-          subscription.status,
-          subscription.reasonForCancellation,
-          subscription.nextPaymentDate ? subscription.nextPaymentDate.toISOString() : null,
-          subscription.id
-        ]
-      );
-      return subscription;
-    } else {
-      // Insert new subscription
-      const result = await this.db.run(
-        `INSERT INTO subscriptions (clientCode, planCode, startDate, cancellationDate, status, reasonForCancellation, nextPaymentDate) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          subscription.clientCode,
-          subscription.planCode,
-          subscription.startDate.toISOString(),
-          subscription.cancellationDate ? subscription.cancellationDate.toISOString() : null,
-          subscription.status,
-          subscription.reasonForCancellation,
-          subscription.nextPaymentDate ? subscription.nextPaymentDate.toISOString() : null
-        ]
-      );
-      subscription.id = result.lastID;
-      return subscription;
-    }
-  }
-
+class SubscriptionRepositoryPg {
   async findById(id) {
-    const row = await this.db.get(`SELECT * FROM subscriptions WHERE id = ?`, id);
-    if (!row) return null;
+    const data = await SubscriptionModel.findByPk(id);
+    if (!data) return null;
+    
     return new Subscription(
-      row.id,
-      row.clientCode,
-      row.planCode,
-      new Date(row.startDate),
-      row.cancellationDate ? new Date(row.cancellationDate) : null,
-      row.status,
-      row.reasonForCancellation,
-      row.nextPaymentDate ? new Date(row.nextPaymentDate) : null
+      data.codAss,
+      data.codCli,
+      data.codPlano,
+      data.startDate,
+      data.endDate,
+      data.status,
+      data.cancellationDate,
+      data.nextPaymentDate
     );
   }
 
-  async findByClientCode(clientCode) {
-    const rows = await this.db.all(`SELECT * FROM subscriptions WHERE clientCode = ?`, clientCode);
-    return rows.map(row => new Subscription(
-      row.id,
-      row.clientCode,
-      row.planCode,
-      new Date(row.startDate),
-      row.cancellationDate ? new Date(row.cancellationDate) : null,
-      row.status,
-      row.reasonForCancellation,
-      row.nextPaymentDate ? new Date(row.nextPaymentDate) : null
+  async save(subscription) {
+    const [data, created] = await SubscriptionModel.upsert({
+      codAss: subscription.codAss,
+      codCli: subscription.codCli,
+      codPlano: subscription.codPlano,
+      startDate: subscription.startDate,
+      endDate: subscription.endDate,
+      status: subscription.status,
+      cancellationDate: subscription.cancellationDate,
+      nextPaymentDate: subscription.nextPaymentDate
+    });
+
+    return new Subscription(
+      data.codAss,
+      data.codCli,
+      data.codPlano,
+      data.startDate,
+      data.endDate,
+      data.status,
+      data.cancellationDate,
+      data.nextPaymentDate
+    );
+  }
+
+  async findByCodPlano(codPlano) {
+    const data = await SubscriptionModel.findAll({ where: { codPlano } });
+    return data.map(d => new Subscription(
+      d.codAss,
+      d.codCli,
+      d.codPlano,
+      d.startDate,
+      d.endDate,
+      d.status,
+      d.cancellationDate,
+      d.nextPaymentDate
     ));
   }
 
-  async findByPlanCode(planCode) {
-    const rows = await this.db.all(`SELECT * FROM subscriptions WHERE planCode = ?`, planCode);
-    return rows.map(row => new Subscription(
-      row.id,
-      row.clientCode,
-      row.planCode,
-      new Date(row.startDate),
-      row.cancellationDate ? new Date(row.cancellationDate) : null,
-      row.status,
-      row.reasonForCancellation,
-      row.nextPaymentDate ? new Date(row.nextPaymentDate) : null
-    ));
-  }
-
-  async findActiveSubscriptions() {
-    const rows = await this.db.all(`SELECT * FROM subscriptions WHERE status = 'active'`);
-    return rows.map(row => new Subscription(
-      row.id,
-      row.clientCode,
-      row.planCode,
-      new Date(row.startDate),
-      row.cancellationDate ? new Date(row.cancellationDate) : null,
-      row.status,
-      row.reasonForCancellation,
-      row.nextPaymentDate ? new Date(row.nextPaymentDate) : null
+  async findByCodCli(codCli) {
+    const data = await SubscriptionModel.findAll({ where: { codCli } });
+    return data.map(d => new Subscription(
+      d.codAss,
+      d.codCli,
+      d.codPlano,
+      d.startDate,
+      d.endDate,
+      d.status,
+      d.cancellationDate,
+      d.nextPaymentDate
     ));
   }
 }
 
-module.exports = SubscriptionRepository;
+module.exports = SubscriptionRepositoryPg;

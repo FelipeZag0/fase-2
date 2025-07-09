@@ -40,14 +40,14 @@ services:
     depends_on:
       - servico-gestao
     ports:
-      - "3001:3001"
+      - "3002:3002"
 
   servico-faturamento:
     build: ./servico-faturamento
     depends_on:
       - servico-gestao
     ports:
-      - "3002:3002"
+      - "3001:3001"
 
 volumes:
   postgres_data:

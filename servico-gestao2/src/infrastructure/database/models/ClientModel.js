@@ -1,6 +1,5 @@
-// File: servico-gestao/src/infrastructure/database/models/ClientModel.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../../../config/database'); // Importa a instância do Sequelize
+const sequelize = require('../../../config/database');
 
 const ClientModel = sequelize.define('Client', {
   codCli: {

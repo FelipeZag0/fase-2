@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../../config/database.js'); 
+const sequelize = require('../../../config/database.js'); 
 const SubscriptionModel = require('./SubscriptionModel');
 
 const PaymentModel = sequelize.define('Payment', {
@@ -13,7 +13,7 @@ const PaymentModel = sequelize.define('Payment', {
     allowNull: false,
     references: {
       model: SubscriptionModel,
-      key: 'id',
+      key: 'codAss',
     },
   },
   amount: {
@@ -29,6 +29,10 @@ const PaymentModel = sequelize.define('Payment', {
   timestamps: false,
 });
 
-PaymentModel.belongsTo(SubscriptionModel, { foreignKey: 'subscriptionId', as: 'subscription' });
+PaymentModel.belongsTo(SubscriptionModel, {
+  foreignKey: 'subscriptionId',
+  targetKey: 'codAss',
+  as: 'subscription'
+});
 
 module.exports = PaymentModel;

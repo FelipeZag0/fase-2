@@ -2,11 +2,12 @@ const axios = require('axios');
 const express = require('express');
 
 class AppRouter {
-  constructor(clientController, planController, subscriptionController) {
+  constructor(clientController, planController, subscriptionController, paymentController) {
     this.router = express.Router();
     this.clientController = clientController;
     this.planController = planController;
     this.subscriptionController = subscriptionController;
+    this.paymentController = paymentController; // Adicionado
     this._setupRoutes();
   }
 
@@ -17,7 +18,6 @@ class AppRouter {
     this.router.put('/gerenciaplanos/clients/:id', this.clientController.updateClient.bind(this.clientController));
 
     // Plan routes
-    // CORREÇÃO: Usando métodos com nomes corretos
     this.router.get('/gerenciaplanos/plans', this.planController.listPlans.bind(this.planController));
     this.router.post('/gerenciaplanos/plans', this.planController.createPlan.bind(this.planController));
     this.router.put('/gerenciaplanos/plans/:id/cost', this.planController.updatePlanCost.bind(this.planController));
@@ -26,6 +26,9 @@ class AppRouter {
     this.router.post('/gerenciaplanos/subscriptions', this.subscriptionController.createSubscription.bind(this.subscriptionController));
     this.router.get('/gerenciaplanos/subscriptions/client/:codCli', this.subscriptionController.listClientSubscriptions.bind(this.subscriptionController));
     this.router.get('/gerenciaplanos/subscriptions/plan/:codPlano', this.subscriptionController.listPlanSubscribers.bind(this.subscriptionController));
+    
+    // Payment route (NOVA)
+    this.router.post('/gerenciaplanos/pagamentos', this.paymentController.registerPayment.bind(this.paymentController));
   }
 
   getRouter() {

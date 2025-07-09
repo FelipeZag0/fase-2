@@ -1,9 +1,9 @@
-// File: microservices/servico-faturamento/src/main.js
 const Server = require('./server');
 const PaymentController = require('./infra/controllers/PaymentController');
 const PaymentRepository = require('./infra/repositories/PaymentRepository');
 const RegisterPaymentUseCase = require('./application/use-cases/RegisterPaymentUseCase');
 const { appRouter } = require('./infra/web/routes');
+const express = require('express'); // Adicionado
 
 async function main() {
   console.log("Iniciando ServicoFaturamento...");
@@ -19,6 +19,10 @@ async function main() {
   appRouter.post('/registrarpagamento', paymentController.registerPayment.bind(paymentController));
 
   const server = new Server(appRouter);
+  
+  // MIDDLEWARE ADICIONADO PARA CORRIGIR PARSING DE JSON
+  server.app.use(express.json());
+  
   server.start();
 }
 

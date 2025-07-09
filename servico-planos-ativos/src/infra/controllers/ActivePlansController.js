@@ -5,6 +5,12 @@ class ActivePlansController {
 
   async addActiveSubscription(req, res) {
     const { subscriptionCode } = req.body;
+
+    // VALIDAÇÃO ADICIONAL (RECOMENDADO)
+    if (!subscriptionCode || isNaN(subscriptionCode)) {
+      return res.status(400).json({ error: 'Invalid subscriptionCode' });
+    }
+
     try {
       await this.activePlanCacheService.markSubscriptionAsActive(parseInt(subscriptionCode));
       res.status(200).json({
@@ -19,7 +25,7 @@ class ActivePlansController {
     const { codass } = req.params;
     try {
       const isActive = await this.activePlanCacheService.isSubscriptionActive(parseInt(codass));
-      res.status(200).json(isActive);
+      res.status(200).json({ active: isActive });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

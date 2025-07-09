@@ -6,9 +6,9 @@ class Payment {
     if (amount === undefined || amount <= 0) {
       throw new Error('Payment amount must be a positive number.');
     }
-    if (!paymentDate || !(paymentDate instanceof Date)) {
-      throw new Error('Payment date must be a valid Date object.');
-    }
+    // if (!(paymentDate instanceof Date) || isNaN(paymentDate.getTime())) {
+    //   throw new Error('Payment date must be a valid Date object.');
+    // }
 
     this.id = id;
     this.subscriptionId = subscriptionId;

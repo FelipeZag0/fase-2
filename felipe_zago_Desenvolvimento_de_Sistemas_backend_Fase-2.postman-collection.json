@@ -90,7 +90,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Plano Premium\",\n  \"description\": \"Internet 500MB + TV HD\",\n  \"monthlyCost\": 199.90\n}",
+              "raw": "{\n  \"name\": \"Plano Premium\",\n  \"description\": \"Internet 500MB + TV HD\",\n  \"price\": 99.90\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -179,6 +179,33 @@
             "description": "Lista todas as assinaturas de um plano específico"
           },
           "response": []
+        },
+        {
+          "name": "Registrar Pagamento (via Gestão)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dia\": 15,\n  \"mes\": 6,\n  \"ano\": 2025,\n  \"codAss\": 1,\n  \"valorPago\": 149.90\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/gerenciaplanos/pagamentos",
+              "host": ["{{base_url}}"],
+              "path": ["gerenciaplanos", "pagamentos"]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -224,9 +251,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url_planos_ativos}}/planosativos/1",
+              "raw": "{{base_url_planos_ativos}}/active-plans/1",
               "host": ["{{base_url_planos_ativos}}"],
-              "path": ["planosativos", "1"]
+              "path": ["active-plans", "1"]
             },
             "description": "Verifica se uma assinatura está ativa"
           },
