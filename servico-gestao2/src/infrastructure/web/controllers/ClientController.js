@@ -37,20 +37,28 @@ class ClientController {
   async updateClient(req, res) {
     try {
       const { id } = req.params;
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'ID inválido' });
+      }
+
       const { name, email, cpf } = req.body;
       if (!name || !email || !cpf) {
         return res.status(400).json({ error: 'Name, email, and CPF are required for update.' });
       }
+
       const updatedClient = await this.updateClientUseCase.execute(Number(id), name, email, cpf);
+      
       res.status(200).json(updatedClient);
     } catch (error) {
       console.error('Error updating client:', error);
       if (error.message.includes('not found')) {
         return res.status(404).json({ error: error.message });
       }
+
       if (error.message.includes('unique constraint')) {
         return res.status(409).json({ error: 'Another client with this email or CPF already exists.' });
       }
+
       res.status(500).json({ error: 'Failed to update client.' });
     }
   }

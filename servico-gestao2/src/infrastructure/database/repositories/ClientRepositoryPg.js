@@ -42,10 +42,10 @@ class ClientRepositoryPg {
       email: client.email,
       cpf: client.cpf
     }, {
-      where: { codCli: client.codCli }
+      where: { codCli: client.id } 
     });
     if (updatedRows === 0) {
-      throw new Error(`Client with codCli ${client.codCli} not found or no changes made.`);
+      throw new Error(`Client with codCli ${client.id} not found or no changes made.`);
     }
     return client; // Retorna a entidade atualizada
   }

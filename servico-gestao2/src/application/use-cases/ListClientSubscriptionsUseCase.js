@@ -4,7 +4,7 @@ class ListClientSubscriptionsUseCase {
   }
 
   async execute(codCli) {
-    return this.subscriptionRepository.findBycodCli(codCli);
+    return this.subscriptionRepository.findByCodCli(codCli);
   }
 }
 

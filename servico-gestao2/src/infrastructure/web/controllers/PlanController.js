@@ -31,9 +31,9 @@ class PlanController {
       }
 
       const newPlan = await this.createPlanUseCase.execute(
-        name, 
-        description, 
-        priceNumber, 
+        name,
+        description,
+        priceNumber,
       );
 
       console.log('Plano criado:', newPlan);
@@ -52,6 +52,12 @@ class PlanController {
   async updatePlanCost(req, res) {
     const { id } = req.params;
     const { newPrice } = req.body;
+
+    const numericPrice = parseFloat(newPrice);
+    if (isNaN(numericPrice)) {
+      return res.status(400).json({ error: 'Preço inválido.' });
+    }
+
     console.log(`Recebido para atualizar custo do plano ${id}:`, req.body);
     try {
       if (typeof newPrice !== 'number') {

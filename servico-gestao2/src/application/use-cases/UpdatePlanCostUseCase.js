@@ -14,7 +14,7 @@ class UpdatePlanCostUseCase {
       throw new Error('Plano não encontrado.');
     }
 
-    plan.cost = newCost;
+    plan.monthlyCost = newCost;
     await this.planRepository.update(plan);
 
     return plan;

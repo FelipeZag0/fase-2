@@ -1,11 +1,14 @@
 const SubscriptionModel = require('../models/SubscriptionModel');
 const Subscription = require('../../../domain/entities/Subscription');
+const Client = require('../../../domain/entities/Client');
+const ClientModel = require('../models/ClientModel');
+const PlanModel = require('../models/PlanModel');
 
 class SubscriptionRepositoryPg {
   async findById(id) {
     const data = await SubscriptionModel.findByPk(id);
     if (!data) return null;
-    
+
     return new Subscription(
       data.codAss,
       data.codCli,
@@ -57,7 +60,11 @@ class SubscriptionRepositoryPg {
   }
 
   async findByCodCli(codCli) {
-    const data = await SubscriptionModel.findAll({ where: { codCli } });
+    const data = await SubscriptionModel.findAll({
+      where: { codCli },
+      include: [ClientModel, PlanModel]
+    });
+
     return data.map(d => new Subscription(
       d.codAss,
       d.codCli,

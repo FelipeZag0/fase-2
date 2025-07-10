@@ -38,7 +38,7 @@ class RegisterPaymentUseCase {
       });
       console.log(`[ServicoGestao] Notified ServicoPlanosAtivos about payment for subscription ${codAss}`);
     } catch (error) {
-      console.error(`[ServicoGestao] Failed to notify ServicoPlanosAtivos: ${error.message}`);
+      console.error(`[ServicoGestao] Erro ao notificar ServicoPlanosAtivos: ${error.message}`);
     }
 
     return subscription;
