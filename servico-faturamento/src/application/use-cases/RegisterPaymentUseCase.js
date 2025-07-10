@@ -25,7 +25,12 @@ class RegisterPaymentUseCase {
       throw new Error('Valor deve ser positivo');
     }
 
-    const payment = new Payment(null, paymentDate, codAss, valorFloat);
+    const payment = new Payment(
+      null, // ID será gerado pelo repositório
+      paymentDate, // Data do pagamento
+      codAss,  // Código da assinatura
+      valorFloat // Valor pago
+    );
     await this.paymentRepository.save(payment);
 
     return payment;
