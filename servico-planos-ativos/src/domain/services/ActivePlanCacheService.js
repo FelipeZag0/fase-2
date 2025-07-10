@@ -15,6 +15,11 @@ class ActivePlanCacheService {
   async removeSubscriptionFromCache(subscriptionCode) {
     await this.subscriptionCacheRepository.removeActiveSubscription(subscriptionCode);
   }
+
+  async debugCache() {
+    await this.subscriptionCacheRepository.debugCache();
+  }
+
 }
 
 module.exports = ActivePlanCacheService;

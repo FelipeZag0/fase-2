@@ -48,30 +48,36 @@ class PlanController {
     }
   }
 
-  // CORREÇÃO: Método renomeado para updatePlanCost
   async updatePlanCost(req, res) {
     const { id } = req.params;
     const { newPrice } = req.body;
 
-    const numericPrice = parseFloat(newPrice);
-    if (isNaN(numericPrice)) {
-      return res.status(400).json({ error: 'Preço inválido.' });
+    // Converter ID para número
+    const planId = parseInt(id, 10);
+    if (isNaN(planId)) {
+      return res.status(400).json({ error: 'ID inválido.' });
     }
 
-    console.log(`Recebido para atualizar custo do plano ${id}:`, req.body);
+    // Converter preço para número
+    const numericPrice = parseFloat(newPrice);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({ error: 'Preço inválido. Deve ser um número positivo.' });
+    }
+
     try {
-      if (typeof newPrice !== 'number') {
-        return res.status(400).json({ error: 'Bad Request: newPrice (number) is required.' });
-      }
-      const updatedPlan = await this.updatePlanCostUseCase.execute(id, newPrice);
+      const updatedPlan = await this.updatePlanCostUseCase.execute(planId, numericPrice);
+
       if (!updatedPlan) {
-        return res.status(404).json({ error: 'Plan not found.' });
+        return res.status(404).json({ error: 'Plano não encontrado.' });
       }
+
       res.status(200).json(updatedPlan);
     } catch (error) {
-      console.error('Error updating plan cost:', error.message);
-      res.status(500).json({ error: 'Failed to update plan cost.' });
+      console.error('Erro ao atualizar custo do plano:', error.message);
+      res.status(500).json({ error: 'Falha ao atualizar custo do plano.' });
     }
+
+    await this.updatePlanCostUseCase.execute(Number(id), numericPrice);
   }
 }
 

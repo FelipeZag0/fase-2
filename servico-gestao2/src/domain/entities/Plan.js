@@ -1,5 +1,5 @@
 class Plan {
-  constructor(id, name, description, monthlyCost) {
+  constructor(codPlano, name, description, monthlyCost) {
     if (!name || name.trim() === '') {
       throw new Error('Plan name cannot be empty.');
     }
@@ -7,7 +7,7 @@ class Plan {
       throw new Error('Monthly cost must be a non-negative number.');
     }
 
-    this.id = id;
+    this.codPlano = codPlano;
     this.name = name;
     this.description = description;
     this.monthlyCost = monthlyCost;

@@ -201,13 +201,11 @@ class RegisterPaymentUseCase {
 
 module.exports = RegisterPaymentUseCase;
 ===== ./servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js =====
-// File: microservices/servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js
-// This is a simplified in-memory cache for demonstration.
-// In a real application, this would use a proper caching solution like Redis.
 
+// File: servico-planos-ativos/src/infra/repositories/SubscriptionCacheRepository.js
 class SubscriptionCacheRepository {
   constructor() {
-    this.activeSubscriptions = new Set(); // Stores active subscription IDs
+    this.activeSubscriptions = new Map();
   }
 
   async isActive(subscriptionCode) {
@@ -215,13 +213,17 @@ class SubscriptionCacheRepository {
   }
 
   async addActiveSubscription(subscriptionCode) {
-    this.activeSubscriptions.add(subscriptionCode);
+    this.activeSubscriptions.set(subscriptionCode, true);
     console.log(`[ServicoPlanosAtivos Cache] Added subscription ${subscriptionCode}`);
   }
 
   async removeActiveSubscription(subscriptionCode) {
     this.activeSubscriptions.delete(subscriptionCode);
     console.log(`[ServicoPlanosAtivos Cache] Removed subscription ${subscriptionCode}`);
+  }
+
+  async debugCache() {
+    console.log(`[ServicoPlanosAtivos Cache] Current active subscriptions: ${Array.from(this.activeSubscriptions.keys()).join(', ')}`);
   }
 }
 
@@ -241,15 +243,15 @@ class ActivePlansController {
   async addActiveSubscription(req, res) {
     const { subscriptionCode } = req.body;
 
-    // VALIDAÇÃO ADICIONAL (RECOMENDADO)
-    if (!subscriptionCode || isNaN(subscriptionCode)) {
+    const code = parseInt(subscriptionCode, 10);
+    if (isNaN(code)) {
       return res.status(400).json({ error: 'Invalid subscriptionCode' });
     }
 
     try {
-      await this.activePlanCacheService.markSubscriptionAsActive(parseInt(subscriptionCode));
+      await this.activePlanCacheService.markSubscriptionAsActive(code);
       res.status(200).json({
-        message: `Subscription ${subscriptionCode} marked as active`
+        message: `Subscription ${code} marked as active`
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -316,6 +318,11 @@ class ActivePlanCacheService {
   async removeSubscriptionFromCache(subscriptionCode) {
     await this.subscriptionCacheRepository.removeActiveSubscription(subscriptionCode);
   }
+
+  async debugCache() {
+    await this.subscriptionCacheRepository.debugCache();
+  }
+
 }
 
 module.exports = ActivePlanCacheService;
@@ -364,18 +371,28 @@ class CheckSubscriptionUseCase {
 
 module.exports = CheckSubscriptionUseCase;
 ===== ./servico-planos-ativos/src/application/use-cases/ProcessPaymentEventUseCase.js =====
-// File: microservices/servico-planos-ativos/src/application/use-cases/ProcessPaymentEventUseCase.js
+
 class ProcessPaymentEventUseCase {
   constructor(activePlanCacheService) {
     this.activePlanCacheService = activePlanCacheService;
   }
 
   async execute(subscriptionCode, day, month, year) {
-    const paymentDate = new Date(year, month - 1, day);
-    // In a real system, you would verify the payment details
-    // For this demonstration, we'll assume a payment means the subscription is active.
-    this.activePlanCacheService.markSubscriptionAsActive(subscriptionCode);
-    console.log(`[ServicoPlanosAtivos] Subscription ${subscriptionCode} marked as active due to payment on ${paymentDate.toISOString().split('T')[0]}`);
+    // Converter para número
+    const code = parseInt(subscriptionCode, 10);
+
+    if (isNaN(code)) {
+      throw new Error(`Código de assinatura inválido: ${subscriptionCode}`);
+    }
+
+    // Somente uma chamada para ativação
+    await this.activePlanCacheService.markSubscriptionAsActive(code);
+
+    // Debug do cache
+    await this.activePlanCacheService.debugCache();
+
+    // Log informativo
+    console.log(`[ServicoPlanosAtivos] Assinatura ${code} marcada como ativa (pagamento: ${day}/${month}/${year})`);
   }
 }
 
@@ -576,20 +593,28 @@ class ClientController {
   async updateClient(req, res) {
     try {
       const { id } = req.params;
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'ID inválido' });
+      }
+
       const { name, email, cpf } = req.body;
       if (!name || !email || !cpf) {
         return res.status(400).json({ error: 'Name, email, and CPF are required for update.' });
       }
+
       const updatedClient = await this.updateClientUseCase.execute(Number(id), name, email, cpf);
+      
       res.status(200).json(updatedClient);
     } catch (error) {
       console.error('Error updating client:', error);
       if (error.message.includes('not found')) {
         return res.status(404).json({ error: error.message });
       }
+
       if (error.message.includes('unique constraint')) {
         return res.status(409).json({ error: 'Another client with this email or CPF already exists.' });
       }
+
       res.status(500).json({ error: 'Failed to update client.' });
     }
   }
@@ -630,9 +655,9 @@ class PlanController {
       }
 
       const newPlan = await this.createPlanUseCase.execute(
-        name, 
-        description, 
-        priceNumber, 
+        name,
+        description,
+        priceNumber,
       );
 
       console.log('Plano criado:', newPlan);
@@ -647,23 +672,33 @@ class PlanController {
     }
   }
 
-  // CORREÇÃO: Método renomeado para updatePlanCost
   async updatePlanCost(req, res) {
     const { id } = req.params;
     const { newPrice } = req.body;
-    console.log(`Recebido para atualizar custo do plano ${id}:`, req.body);
+
+    // Converter ID para número
+    const planId = parseInt(id, 10);
+    if (isNaN(planId)) {
+      return res.status(400).json({ error: 'ID inválido.' });
+    }
+
+    // Converter preço para número
+    const numericPrice = parseFloat(newPrice);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({ error: 'Preço inválido. Deve ser um número positivo.' });
+    }
+
     try {
-      if (typeof newPrice !== 'number') {
-        return res.status(400).json({ error: 'Bad Request: newPrice (number) is required.' });
-      }
-      const updatedPlan = await this.updatePlanCostUseCase.execute(id, newPrice);
+      const updatedPlan = await this.updatePlanCostUseCase.execute(planId, numericPrice);
+
       if (!updatedPlan) {
-        return res.status(404).json({ error: 'Plan not found.' });
+        return res.status(404).json({ error: 'Plano não encontrado.' });
       }
+
       res.status(200).json(updatedPlan);
     } catch (error) {
-      console.error('Error updating plan cost:', error.message);
-      res.status(500).json({ error: 'Failed to update plan cost.' });
+      console.error('Erro ao atualizar custo do plano:', error.message);
+      res.status(500).json({ error: 'Falha ao atualizar custo do plano.' });
     }
   }
 }
@@ -767,10 +802,10 @@ class ClientRepositoryPg {
       email: client.email,
       cpf: client.cpf
     }, {
-      where: { codCli: client.codCli }
+      where: { codCli: client.id } 
     });
     if (updatedRows === 0) {
-      throw new Error(`Client with codCli ${client.codCli} not found or no changes made.`);
+      throw new Error(`Client with codCli ${client.id} not found or no changes made.`);
     }
     return client; // Retorna a entidade atualizada
   }
@@ -790,7 +825,6 @@ const PlanModel = require('../models/PlanModel');
 const Plan = require('../../../domain/entities/Plan');
 
 class PlanRepositoryPg extends IPlanRepository {
-
   async create(plan) {
     try {
       console.log('Creating plan:', plan);
@@ -801,7 +835,7 @@ class PlanRepositoryPg extends IPlanRepository {
       });
 
       return new Plan(
-        createdPlan.id,
+        createdPlan.codPlano,
         createdPlan.name,
         createdPlan.description,
         parseFloat(createdPlan.monthlyCost)
@@ -813,7 +847,7 @@ class PlanRepositoryPg extends IPlanRepository {
   }
   async save(plan) {
     const createdPlan = await PlanModel.create(plan);
-    return new Plan(createdPlan.id, createdPlan.name, createdPlan.description, parseFloat(createdPlan.monthlyCost));
+    return new Plan(createdPlan.codPlano, createdPlan.name, createdPlan.description, parseFloat(createdPlan.monthlyCost));
   }
 
   async findById(id) {
@@ -821,19 +855,40 @@ class PlanRepositoryPg extends IPlanRepository {
     if (!planData) {
       return null;
     }
-    return new Plan(planData.id, planData.name, planData.description, parseFloat(planData.monthlyCost));
+    return new Plan(
+      planData.codPlano, 
+      planData.name, 
+      planData.description, 
+      parseFloat(planData.monthlyCost)
+    );
   }
 
   async findAll() {
     const plansData = await PlanModel.findAll();
-    return plansData.map(data => new Plan(data.id, data.name, data.description, parseFloat(data.monthlyCost)));
+    return plansData.map(data => new Plan(
+      data.codPlano, 
+      data.name, 
+      data.description, 
+      parseFloat(data.monthlyCost))
+    );
   }
 
   async update(plan) {
+    if (!plan.codPlano) {
+      throw new Error('ID do plano não fornecido para atualização.');
+    }
+
     const [updatedRows] = await PlanModel.update(
-      { name: plan.name, description: plan.description, monthlyCost: plan.monthlyCost },
-      { where: { id: plan.id } }
+      {
+        name: plan.name,
+        description: plan.description,
+        monthlyCost: plan.monthlyCost
+      },
+      {
+        where: { codPlano: plan.codPlano }
+      }
     );
+
     if (updatedRows === 0) {
       return null;
     }
@@ -846,12 +901,15 @@ module.exports = PlanRepositoryPg;
 ===== ./servico-gestao2/src/infrastructure/database/repositories/SubscriptionRepositoryPg.js =====
 const SubscriptionModel = require('../models/SubscriptionModel');
 const Subscription = require('../../../domain/entities/Subscription');
+const Client = require('../../../domain/entities/Client');
+const ClientModel = require('../models/ClientModel');
+const PlanModel = require('../models/PlanModel');
 
 class SubscriptionRepositoryPg {
   async findById(id) {
     const data = await SubscriptionModel.findByPk(id);
     if (!data) return null;
-    
+
     return new Subscription(
       data.codAss,
       data.codCli,
@@ -903,7 +961,11 @@ class SubscriptionRepositoryPg {
   }
 
   async findByCodCli(codCli) {
-    const data = await SubscriptionModel.findAll({ where: { codCli } });
+    const data = await SubscriptionModel.findAll({
+      where: { codCli },
+      include: [ClientModel, PlanModel]
+    });
+
     return data.map(d => new Subscription(
       d.codAss,
       d.codCli,
@@ -1542,7 +1604,7 @@ class UpdatePlanCostUseCase {
       throw new Error('Plano não encontrado.');
     }
 
-    plan.cost = newCost;
+    plan.monthlyCost = newCost;
     await this.planRepository.update(plan);
 
     return plan;
@@ -1704,11 +1766,16 @@ class CreateSubscriptionUseCase {
 
     const createdSubscription = await this.subscriptionRepository.save(subscription);
 
+    if (!createdSubscription.codAss) {
+      console.error('Erro: codAss não definido na assinatura criada', createdSubscription);
+      throw new Error('Falha ao criar assinatura: codAss não definido.');
+    }
+
     try {
       await axios.post('http://servico-planos-ativos:3002/active-plans/add', {
-        subscriptionCode: createdSubscription.id
+        subscriptionCode: createdSubscription.codAss
       });
-      console.log(`Notified ServicoPlanosAtivos about subscription: ${createdSubscription.id}`);
+      console.log(`Notified ServicoPlanosAtivos about subscription: ${createdSubscription.codAss}`);
     } catch (error) {
       console.error(`Failed to notify ServicoPlanosAtivos: ${error.message}`);
     }
@@ -1725,7 +1792,7 @@ class ListClientSubscriptionsUseCase {
   }
 
   async execute(codCli) {
-    return this.subscriptionRepository.findBycodCli(codCli);
+    return this.subscriptionRepository.findByCodCli(codCli);
   }
 }
 
@@ -1750,28 +1817,28 @@ class RegisterPaymentUseCase {
     if (isNaN(paymentDate.getTime())) {
       throw new Error(`Invalid payment date: ${ano}-${mes}-${dia}`);
     }
-    
+
     const payment = new Payment(
       null,
       codAss,
       valorPago,
       paymentDate
     );
-    
+
     await this.paymentRepository.save(payment);
-    
+
     // Atualizar a assinatura se necessário
     subscription.lastPaymentDate = paymentDate;
     await this.subscriptionRepository.save(subscription);
 
     // NOTIFICAR SERVIÇO DE PLANOS ATIVOS
     try {
-      await axios.post('http://localhost:3002/active-plans/add', {
+      await axios.post('http://servico-planos-ativos:3002/active-plans/add', {
         subscriptionCode: codAss
       });
       console.log(`[ServicoGestao] Notified ServicoPlanosAtivos about payment for subscription ${codAss}`);
     } catch (error) {
-      console.error(`[ServicoGestao] Failed to notify ServicoPlanosAtivos: ${error.message}`);
+      console.error(`[ServicoGestao] Erro ao notificar ServicoPlanosAtivos: ${error.message}`);
     }
 
     return subscription;

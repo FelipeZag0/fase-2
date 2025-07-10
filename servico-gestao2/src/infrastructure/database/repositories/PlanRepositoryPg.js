@@ -3,7 +3,6 @@ const PlanModel = require('../models/PlanModel');
 const Plan = require('../../../domain/entities/Plan');
 
 class PlanRepositoryPg extends IPlanRepository {
-
   async create(plan) {
     try {
       console.log('Creating plan:', plan);
@@ -14,7 +13,7 @@ class PlanRepositoryPg extends IPlanRepository {
       });
 
       return new Plan(
-        createdPlan.id,
+        createdPlan.codPlano,
         createdPlan.name,
         createdPlan.description,
         parseFloat(createdPlan.monthlyCost)
@@ -26,7 +25,7 @@ class PlanRepositoryPg extends IPlanRepository {
   }
   async save(plan) {
     const createdPlan = await PlanModel.create(plan);
-    return new Plan(createdPlan.id, createdPlan.name, createdPlan.description, parseFloat(createdPlan.monthlyCost));
+    return new Plan(createdPlan.codPlano, createdPlan.name, createdPlan.description, parseFloat(createdPlan.monthlyCost));
   }
 
   async findById(id) {
@@ -34,19 +33,40 @@ class PlanRepositoryPg extends IPlanRepository {
     if (!planData) {
       return null;
     }
-    return new Plan(planData.id, planData.name, planData.description, parseFloat(planData.monthlyCost));
+    return new Plan(
+      planData.codPlano, 
+      planData.name, 
+      planData.description, 
+      parseFloat(planData.monthlyCost)
+    );
   }
 
   async findAll() {
     const plansData = await PlanModel.findAll();
-    return plansData.map(data => new Plan(data.id, data.name, data.description, parseFloat(data.monthlyCost)));
+    return plansData.map(data => new Plan(
+      data.codPlano, 
+      data.name, 
+      data.description, 
+      parseFloat(data.monthlyCost))
+    );
   }
 
   async update(plan) {
+    if (!plan.codPlano) {
+      throw new Error('ID do plano não fornecido para atualização.');
+    }
+
     const [updatedRows] = await PlanModel.update(
-      { name: plan.name, description: plan.description, monthlyCost: plan.monthlyCost },
-      { where: { id: plan.id } }
+      {
+        name: plan.name,
+        description: plan.description,
+        monthlyCost: plan.monthlyCost
+      },
+      {
+        where: { codPlano: plan.codPlano }
+      }
     );
+
     if (updatedRows === 0) {
       return null;
     }

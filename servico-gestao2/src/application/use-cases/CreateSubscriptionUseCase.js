@@ -42,11 +42,16 @@ class CreateSubscriptionUseCase {
 
     const createdSubscription = await this.subscriptionRepository.save(subscription);
 
+    if (!createdSubscription.codAss) {
+      console.error('Erro: codAss não definido na assinatura criada', createdSubscription);
+      throw new Error('Falha ao criar assinatura: codAss não definido.');
+    }
+
     try {
       await axios.post('http://servico-planos-ativos:3002/active-plans/add', {
-        subscriptionCode: createdSubscription.id
+        subscriptionCode: createdSubscription.codAss
       });
-      console.log(`Notified ServicoPlanosAtivos about subscription: ${createdSubscription.id}`);
+      console.log(`Notified ServicoPlanosAtivos about subscription: ${createdSubscription.codAss}`);
     } catch (error) {
       console.error(`Failed to notify ServicoPlanosAtivos: ${error.message}`);
     }
