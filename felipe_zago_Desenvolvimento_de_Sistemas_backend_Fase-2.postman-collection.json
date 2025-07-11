@@ -337,13 +337,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url_planos_ativos}}/active-plans/:codass",
+              "raw": "{{base_url_planos_ativos}}/active-plans/1",
               "host": [
                 "{{base_url_planos_ativos}}"
               ],
               "path": [
                 "active-plans",
-                ":codass"
+                "1"
               ]
             },
             "description": "Verifica se uma assinatura está ativa"
