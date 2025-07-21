@@ -1,164 +1,177 @@
-# Sistema de Gestão de Assinaturas com Arquitetura de Microsserviços
+# Sistema de Controle de Planos de Operadora v2.0 📡
 
-Este projeto implementa um sistema completo de gestão de assinaturas utilizando uma arquitetura de microsserviços. O sistema é composto por três serviços principais que trabalham em conjunto para gerenciar clientes, planos, assinaturas, pagamentos e status de planos ativos.
+Sistema de gerenciamento de clientes, planos e assinaturas para operadoras. Projeto desenvolvido seguindo os princípios da Arquitetura Limpa e SOLID, com arquitetura de microserviços para maior escalabilidade e manutenibilidade.
 
-## Diagrama de Arquitetura
+---
 
-```
-+-------------------+     HTTP      +-------------------+     HTTP      +---------------------+
-|                   |<------------>|                   |<------------>|                     |
-|  Serviço Gestão   |               |  Serviço Fatura- |               |  Serviço Planos     |
-|  (Node.js)        |     Eventos   |  mento (Node.js) |     Eventos   |  Ativos (Node.js)   |
-|  Porta: 3000      |<------------>|  Porta: 3001     |<------------>|  Porta: 3002        |
-+-------------------+               +-------------------+               +---------------------+
-        |  ^                               |  ^                               |  ^
-        |  |                               |  |                               |  |
-        v  |                               v  |                               v  |
-+-------------------+               +-------------------+               +---------------------+
-|   PostgreSQL      |               |   In-memory DB    |               |   In-memory Cache   |
-|   (Dados persistentes)|               |   (Pagamentos)    |               |   (Planos ativos)   |
-+-------------------+               +-------------------+               +---------------------+
-```
+## 🛠 Tecnologias Utilizadas
 
-## Tecnologias Utilizadas
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/express-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
+![PostgreSQL](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Sequelize](https://img.shields.io/badge/Sequelize-52B0E7?style=for-the-badge&logo=Sequelize&logoColor=white)
+![Dotenv](https://img.shields.io/badge/dotenv-8A9A5B?style=for-the-badge&logo=dotenv&logoColor=white)
+![NPM](https://img.shields.io/badge/NPM-%23CB3837.svg?style=for-the-badge&logo=npm&logoColor=white)
+![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)
 
-- **Node.js**: Plataforma de execução para todos os serviços
-- **Express**: Framework web para construção das APIs REST
-- **Sequelize**: ORM para acesso ao banco de dados PostgreSQL
-- **Docker**: Conteinerização dos serviços e dependências
-- **PostgreSQL**: Banco de dados relacional para o serviço de gestão
-- **Axios**: Comunicação HTTP entre serviços
+---
 
-## Serviços
+## 📋 Visão Geral do Projeto
 
-### 1. Serviço de Gestão (servico-gestao2)
-**Porta:** 3000  
-Responsável pelo gerenciamento de clientes, planos e assinaturas. Mantém os dados principais do sistema em um banco PostgreSQL.
-
-Principais funcionalidades:
-- CRUD de clientes
-- CRUD de planos de assinatura
-- Gerenciamento de assinaturas (criação, listagem)
-- Integração com outros serviços
-
-### 2. Serviço de Faturamento (servico-faturamento)
-**Porta:** 3001  
-Responsável pelo registro e processamento de pagamentos. Utiliza um banco de dados em memória.
-
-Principais funcionalidades:
+O sistema permite:
+- Cadastro e gestão de clientes e planos
+- Criação e acompanhamento de assinaturas
+- Atualização de custos de planos
 - Registro de pagamentos
-- Validação de dados de pagamento
-- Comunicação de eventos de pagamento
+- Cache de planos ativos
+- Integração entre microserviços
 
-### 3. Serviço de Planos Ativos (servico-planos-ativos)
-**Porta:** 3002  
-Mantém um cache de assinaturas ativas para consulta rápida. Utiliza uma estrutura em memória.
+### Arquitetura de Microserviços
+![Diagrama da Arquitetura](esquema-orange.png)
 
-Principais funcionalidades:
-- Cache de assinaturas ativas
-- Verificação rápida do status de assinaturas
-- Atualização baseada em eventos de pagamento
+### Distribuição dos Serviços
+![Distribuição dos Microserviços](distributions.png)
 
-## Como Executar o Projeto
+---
+
+## ▶️ Como Executar o Projeto
 
 ### Pré-requisitos
-- Docker instalado
-- Docker Compose instalado
+- Node.js (v14 ou superior)
+- PostgreSQL
+- NPM
 
-### Passo a Passo
+### Configuração Inicial
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/sistema-assinaturas.git
-cd sistema-assinaturas
+git clone https://github.com/seu-usuario/seu-repositorio.git
+cd seu-repositorio
 ```
 
-2. Inicie os serviços com Docker Compose:
+2. Instale as dependências para cada serviço:
 ```bash
-docker-compose up --build
+cd servico-gestao2 && npm install
+cd ../servico-faturamento && npm install
+cd ../servico-planos-ativos && npm install
 ```
 
-3. Os serviços estarão disponíveis nas seguintes portas:
-   - Serviço Gestão: http://localhost:3000
-   - Serviço Faturamento: http://localhost:3001
-   - Serviço Planos Ativos: http://localhost:3002
+3. Configure os arquivos `.env` (copie de `.env.example`):
+```env
+# servico-gestao2/.env
+PORT=3000
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASSWORD=senha
+DB_NAME=gestao_operadora
 
-## Endpoints da API
+# servico-faturamento/.env
+PORT=3001
 
-### Serviço de Gestão (http://localhost:3000)
+# servico-planos-ativos/.env
+PORT=3002
+```
 
-**Clientes**
-- `GET /gerenciaplanos/clients` - Lista todos os clientes
-- `POST /gerenciaplanos/clients` - Cria um novo cliente
-- `PUT /gerenciaplanos/clients/:id` - Atualiza um cliente
+### Iniciar os Serviços
 
-**Planos**
-- `GET /gerenciaplanos/plans` - Lista todos os planos
-- `POST /gerenciaplanos/plans` - Cria um novo plano
-- `PUT /gerenciaplanos/plans/:id/cost` - Atualiza custo de um plano
-
-**Assinaturas**
-- `POST /gerenciaplanos/subscriptions` - Cria nova assinatura
-- `GET /gerenciaplanos/subscriptions/client/:codCli` - Assinaturas por cliente
-- `GET /gerenciaplanos/subscriptions/plan/:codPlano` - Assinaturas por plano
-
-### Serviço de Faturamento (http://localhost:3001)
-- `POST /registrarpagamento` - Registra um novo pagamento
-
-### Serviço de Planos Ativos (http://localhost:3002)
-- `POST /active-plans/add` - Adiciona assinatura ao cache
-- `GET /active-plans/:codass` - Verifica se assinatura está ativa
-
-## Exemplos de Uso
-
-### Criar um novo cliente
+Execute cada serviço em terminais separados:
 ```bash
-curl -X POST http://localhost:3000/gerenciaplanos/clients \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "João Silva",
-    "email": "joao@exemplo.com",
-    "cpf": "123.456.789-00"
-  }'
+# Serviço de Gestão
+cd servico-gestao2
+npm start
+
+# Serviço de Faturamento
+cd ../servico-faturamento
+npm start
+
+# Serviço de Planos Ativos
+cd ../servico-planos-ativos
+npm start
 ```
 
-### Registrar um pagamento
-```bash
-curl -X POST http://localhost:3001/registrarpagamento \
-  -H "Content-Type: application/json" \
-  -d '{
-    "dia": 15,
-    "mes": 7,
-    "ano": 2025,
-    "codAss": 1,
-    "valorPago": 199.90
-  }'
+---
+
+## 📡 Endpoints Principais
+
+### Serviço de Gestão (3000)
+| Método | Endpoint                     | Descrição                          |
+|--------|------------------------------|------------------------------------|
+| POST   | `/gerenciaplanos/clients`    | Cria novo cliente                  |
+| GET    | `/gerenciaplanos/clients`    | Lista todos os clientes            |
+| POST   | `/gerenciaplanos/plans`      | Cria novo plano                    |
+| PUT    | `/gerenciaplanos/plans/:id/cost` | Atualiza custo do plano          |
+| POST   | `/gerenciaplanos/subscriptions` | Cria nova assinatura             |
+| POST   | `/gerenciaplanos/pagamentos` | Registra pagamento                |
+
+### Serviço de Faturamento (3001)
+| Método | Endpoint               | Descrição                     |
+|--------|------------------------|-------------------------------|
+| POST   | `/registrarpagamento`  | Registra pagamento            |
+| GET    | `/test`                | Teste de conexão              |
+
+### Serviço de Planos Ativos (3002)
+| Método | Endpoint                     | Descrição                          |
+|--------|------------------------------|------------------------------------|
+| POST   | `/active-plans/add`          | Adiciona plano ativo               |
+| GET    | `/active-plans/:codass`      | Verifica assinatura ativa          |
+
+---
+
+## 🏗️ Estrutura do Projeto
+
+```
+servico-gestao2/
+├── src/
+│   ├── application/          # Casos de uso
+│   ├── domain/               # Entidades e regras de negócio
+│   ├── infrastructure/       # Implementações concretas
+│   └── main.js               # Ponto de entrada
+│
+servico-faturamento/
+├── src/
+│   ├── infra/                # Implementações de infra
+│   ├── domain/               # Entidades
+│   ├── application/          # Casos de uso
+│   └── main.js               # Ponto de entrada
+│
+servico-planos-ativos/
+├── src/
+│   ├── infra/                # Implementações de infra
+│   ├── domain/               # Serviços de domínio
+│   ├── application/          # Casos de uso
+│   └── main.js               # Ponto de entrada
 ```
 
-### Verificar se assinatura está ativa
-```bash
-curl -X GET http://localhost:3002/active-plans/1
-```
+---
 
-## Fluxo de Funcionamento
+## 🧠 Princípios Arquiteturais
 
-1. Um novo cliente é cadastrado via Serviço de Gestão
-2. O cliente assina um plano, criando uma assinatura
-3. O Serviço de Gestão notifica o Serviço de Planos Ativos sobre a nova assinatura
-4. Quando um pagamento é registrado via Serviço de Faturamento:
-   - O pagamento é validado e armazenado
-   - Um evento é publicado para o Serviço de Planos Ativos
-   - O Serviço de Planos Ativos atualiza o status da assinatura
-5. Qualquer serviço pode verificar o status de uma assinatura consultando o Serviço de Planos Ativos
+1. **Arquitetura Limpa**: Separação clara entre:
+   - Camada de Domínio (regras de negócio)
+   - Camada de Aplicação (casos de uso)
+   - Camada de Infraestrutura (implementações)
 
-## Coleção Postman
+2. **SOLID**:
+   - Single Responsibility (cada classe com uma responsabilidade)
+   - Dependency Inversion (dependências abstraídas)
+   - Open/Closed (aberto para extensão, fechado para modificação)
 
-Uma coleção completa do Postman está disponível no arquivo:
-`felipe_zago_Desenvolvimento_de_Sistemas_backend_Fase-2.postman-collection.json`
+3. **Microserviços**:
+   - Serviços independentes e especializados
+   - Comunicação via HTTP/REST
+   - Banco de dados independente para serviço principal
 
-Para importar:
-1. Abra o Postman
-2. Clique em "Import"
-3. Selecione o arquivo JSON fornecido
+---
 
-A coleção contém todos os endpoints configurados com exemplos de requisição.
+## 📌 Considerações Finais
+
+Esta versão 2.0 traz:
+- Arquitetura de microserviços para maior escalabilidade
+- Implementação completa de Clean Architecture
+- Separação clara de responsabilidades
+- Banco de dados relacional com Sequelize
+- Cache em memória para planos ativos
+- Validações robustas em todas as camadas
