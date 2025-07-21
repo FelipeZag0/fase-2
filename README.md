@@ -28,13 +28,6 @@ O sistema permite:
 - Registro de pagamentos
 - Cache de planos ativos
 - Integração entre microserviços
-
-### Arquitetura de Microserviços
-![Diagrama da Arquitetura](esquema-orange.png)
-
-### Distribuição dos Serviços
-![Distribuição dos Microserviços](distributions.png)
-
 ---
 
 ## ▶️ Como Executar o Projeto
@@ -48,8 +41,8 @@ O sistema permite:
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/seu-repositorio.git
-cd seu-repositorio
+git clone https://github.com/FelipeZag0/gestao-operadora-2.git
+cd gestao-operadora-2
 ```
 
 2. Instale as dependências para cada serviço:
